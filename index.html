@@ -166,10 +166,34 @@
         </div>
     </div>
 
+    <!-- Modal Amaran Duplikasi -->
+    <div id="duplicate-modal" class="fixed inset-0 z-[110] flex items-center justify-center p-6 hidden bg-black/60 backdrop-blur-md">
+        <div class="glass-panel p-8 max-w-xs w-full text-center shadow-2xl scale-in border-4 border-red-500">
+            <h2 class="text-6xl mb-4">🚫</h2>
+            <h3 class="text-xl font-black text-red-600 mb-2 uppercase italic">MAAF, ANDA TELAH MENJAWAB!</h3>
+            <p id="dup-msg" class="text-[11px] mb-6 text-emerald-900 font-bold uppercase leading-relaxed"></p>
+            <button onclick="closeDuplicateModal()" class="w-full bg-emerald-600 text-white py-4 rounded-xl font-bold text-xs shadow-lg">FAHAM & KEMBALI</button>
+        </div>
+    </div>
+
+    <!-- Modal PIN Guru -->
+    <div id="pin-modal" class="fixed inset-0 z-[100] flex items-center justify-center p-6 hidden bg-black/50 backdrop-blur-sm">
+        <div class="glass-panel p-6 max-w-xs w-full text-center shadow-2xl scale-in">
+            <h3 class="text-lg font-bold text-emerald-900 mb-4 uppercase">🔒 Mod Guru</h3>
+            <p class="text-[10px] mb-4 text-gray-600 font-bold uppercase">Masukkan PIN untuk padam data murid</p>
+            <input id="pin-input" type="password" maxlength="4" placeholder="****" class="w-full text-center p-3 border-2 border-emerald-200 rounded-xl mb-4 text-xl tracking-widest font-bold">
+            <div class="flex gap-2">
+                <button onclick="closePinModal()" class="flex-1 bg-gray-200 py-2 rounded-lg font-bold text-xs">BATAL</button>
+                <button onclick="verifyPin()" class="flex-1 bg-red-500 text-white py-2 rounded-lg font-bold text-xs">SAHKAN</button>
+            </div>
+        </div>
+    </div>
+
     <div class="footer-text font-bold uppercase">©️ PUSAT SUMBER AL-GHAZALI | SK BANDAR TUN HUSSEIN ONN 2 | 2026</div>
 
     <script>
-        const GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbx4xrg8AkkPtviVuiIQd4yZjkRvJK3EIo5zD0GiqAWFdbEke6OBvdiEqRArLmecsnpJug/exec"; 
+        const GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycby8h6LcQnGJfH_2BvlAuDclLfZLMrz4m5cyxgGkmXLkVxWX6v6KvWcb7yTpsNwyN7HT7w/exec"; 
+        const ADMIN_PIN = "4055";
         
         let questionBank = [];
         let currentIdx = 0, score = 0, progress = 0, selectedHand = 'none';
@@ -177,37 +201,29 @@
         let sheetData = [];
         let isFetching = false;
         let fetchError = false;
+        let selectedRecordForDelete = null;
 
         const TOTAL_QUESTIONS = 20;
 
         const originalQuestionBank = [
-            // 1. Pengertian
             { q: "Apakah pengertian puasa dari segi BAHASA? 🤐", a: "Makan perlahan", b: "Menahan diri", correct: 'right', info: "Bahasa bermaksud menahan diri." },
             { q: "Puasa dari segi SYARAK bermula dari terbit fajar sehingga? 🌅", a: "Terbenam matahari", b: "Tengah malam", correct: 'left', info: "Dari Subuh (terbit fajar) hingga Maghrib (terbenam matahari)." },
             { q: "Apakah hukum berpuasa bagi umat Islam yang mampu? ⚖️", a: "Sunat", b: "Wajib", correct: 'right', info: "Hukumnya Wajib bagi yang mampu." },
-            // 2. Rukun
             { q: "Bilakah waktu yang ditetapkan untuk berniat puasa? 🌙", a: "Waktu malam", b: "Selepas Zohor", correct: 'left', info: "Niat dilakukan pada waktu malam sebelum fajar." },
             { q: "Adakah 'Menahan diri' merupakan salah satu Rukun Puasa? ✅", a: "Ya, Rukun", b: "Bukan Rukun", correct: 'left', info: "Rukun puasa ada dua: Niat & Menahan diri." },
-            // 3. Syarat Wajib
             { q: "Siapakah yang WAJIB berpuasa mengikut syarat berakal? 🧠", a: "Orang Gila", b: "Orang Waras", correct: 'right', info: "Syarat wajib: Islam, Baligh, Berakal & Sihat." },
             { q: "Adakah kanak-kanak yang belum Baligh wajib puasa? 👶", a: "Tidak Wajib", b: "Wajib", correct: 'left', info: "Kewajipan bermula selepas mencapai umur Baligh." },
-            // 4. Membatalkan
             { q: "Muntah dengan sengaja, adakah batal puasa? 🤮", a: "Tidak Batal", b: "Ya, Batal", correct: 'right', info: "Muntah dengan sengaja membatalkan puasa." },
             { q: "Adakah Murtad (keluar Islam) membatalkan puasa? 🚪", a: "Ya, Batal", b: "Tidak Batal", correct: 'left', info: "Murtad membatalkan puasa serta-merta." },
-            // 5. Sunnah
             { q: "Amalan sunnah makan sebelum Subuh dipanggil? 🥛", a: "Sahur", b: "Iftar", correct: 'left', info: "Bersahur adalah amalan sunnah yang sangat digalakkan." },
             { q: "Sunnah berbuka puasa dengan memakan buah apa? 🌴", a: "Epal", b: "Kurma", correct: 'right', info: "Nabi Muhammad SAW menyunnahkan berbuka dengan kurma." },
             { q: "Solat sunat yang hanya ada pada malam Ramadan ialah? 🕌", a: "Solat Hajat", b: "Solat Tarawih", correct: 'right', info: "Solat Tarawih istimewa hanya di bulan Ramadan." },
-            // 6. Keistimewaan
             { q: "Malam yang lebih baik daripada 1,000 bulan ialah? ✨", a: "Lailatul Qadar", b: "Malam Jumaat", correct: 'left', info: "Lailatul Qadar adalah malam paling istimewa." },
             { q: "Apakah yang terjadi kepada syaitan di bulan Ramadan? ⛓️", a: "Diberi makan", b: "Dibelenggu", correct: 'right', info: "Pintu syurga dibuka & syaitan dibelenggu." },
-            // 7. Sejarah
             { q: "Tahun ke-berapakah Hijrah puasa Ramadan mula diwajibkan? 🗓️", a: "Tahun ke-2", b: "Tahun ke-10", correct: 'left', info: "Perintah puasa diturunkan pada tahun ke-2 Hijrah." },
             { q: "Bilakah tarikh peristiwa Nuzul Al-Quran disambut? 📖", a: "1 Syawal", b: "17 Ramadan", correct: 'right', info: "Al-Quran mula diturunkan pada 17 Ramadan." },
-            // 8. Makruh
             { q: "Tidur berlebihan sepanjang hari, apakah hukumnya? 😴", a: "Batal Puasa", b: "Makruh", correct: 'right', info: "Makruh kerana mengurangkan pahala & keberkatan." },
             { q: "Bercakap perkara buruk/mengumpat ketika puasa adalah? 🗣️", a: "Makruh", b: "Sunat", correct: 'left', info: "Mengumpat & berbohong mengurangkan pahala puasa." },
-            // 9. Keringanan
             { q: "Golongan manakah yang diberi keringanan tidak puasa? 🎒", a: "Musafir", b: "Orang Kaya", correct: 'left', info: "Musafir (perjalanan jauh > 81km) diberi keringanan." },
             { q: "Ibu yang mengandung diberi keringanan jika bimbang akan? 🤰", a: "Rasa Lapar", b: "Keselamatan Anak", correct: 'right', info: "Boleh berbuka jika bimbang keselamatan diri/anak." }
         ];
@@ -294,7 +310,7 @@
                     </div>
                     <div class="flex-1 overflow-y-auto custom-scroll space-y-2 pr-1">
                         ${isFetching ? '<div class="text-center py-10 text-[10px] animate-pulse">Memuatkan...</div>' : (fetchError ? '<div class="text-center py-10 text-red-500 font-bold text-[10px]">Ralat data!</div>' : (list.length > 0 ? list.map((l, i) => `
-                            <div class="flex items-center justify-between bg-white p-2 rounded-lg border border-emerald-50 shadow-sm">
+                            <div ondblclick="triggerDelete('${l.name}', '${l.class}')" class="flex items-center justify-between bg-white p-2 rounded-lg border border-emerald-50 shadow-sm cursor-pointer hover:bg-red-50 transition-colors select-none">
                                 <div class="truncate flex-1">
                                     <p class="text-[10px] font-bold text-emerald-900 truncate uppercase">
                                         ${currentTab === 'winners' ? `<span class="text-amber-500 mr-1">#${i+1}</span>` : ''}${l.name || 'Hamba Allah'}
@@ -305,17 +321,73 @@
                             </div>
                         `).join('') : '<div class="text-center py-10 opacity-50 text-[10px]">Tiada rekod.</div>'))}
                     </div>
+                    <p class="text-[7px] text-center mt-2 text-gray-400 font-bold uppercase">Guru: Klik 2x nama untuk padam</p>
                 </div>
             `;
         }
 
+        function triggerDelete(name, className) {
+            selectedRecordForDelete = { name, class: className };
+            document.getElementById('pin-modal').classList.remove('hidden');
+            document.getElementById('pin-input').focus();
+        }
+
+        function closePinModal() {
+            document.getElementById('pin-modal').classList.add('hidden');
+            document.getElementById('pin-input').value = "";
+            selectedRecordForDelete = null;
+        }
+
+        async function verifyPin() {
+            const inputPin = document.getElementById('pin-input').value;
+            if (inputPin === ADMIN_PIN) {
+                const { name, class: className } = selectedRecordForDelete;
+                closePinModal();
+                sheetData = sheetData.filter(d => !(d.name === name && d.class === className));
+                renderUI();
+                try {
+                    await fetch(GOOGLE_SHEET_URL, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: "delete", name: name, class: className })
+                    });
+                    setTimeout(fetchSheetData, 2000);
+                } catch (e) {
+                    console.error("Gagal padam di server:", e);
+                }
+            } else {
+                alert("PIN SALAH! Akses ditolak.");
+                document.getElementById('pin-input').value = "";
+            }
+        }
+
         function switchTab(tab) { currentTab = tab; renderUI(); }
 
+        // SEMAK DUPLIKASI NAMA & KELAS
         function checkStart() {
             studentName = document.getElementById('in-name').value.trim().toUpperCase();
             studentClass = document.getElementById('in-class').value.trim().toUpperCase();
+            
             if(!studentName || !studentClass) return;
+
+            // Semak dalam sheetData
+            const isDuplicate = sheetData.some(d => 
+                String(d.name).toUpperCase() === studentName && 
+                String(d.class).toUpperCase() === studentClass
+            );
+
+            if (isDuplicate) {
+                document.getElementById('dup-msg').innerHTML = `NAMA: ${studentName}<br>KELAS: ${studentClass}<br><br>Setiap murid hanya dibenarkan mengambil kuiz sekali sahaja.`;
+                document.getElementById('duplicate-modal').classList.remove('hidden');
+                return;
+            }
+
             shuffleQuestions(); startQuizUI();
+        }
+
+        function closeDuplicateModal() {
+            document.getElementById('duplicate-modal').classList.add('hidden');
         }
 
         function shuffleQuestions() { questionBank = [...originalQuestionBank].sort(() => Math.random() - 0.5); }
