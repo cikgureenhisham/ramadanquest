@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Kuiz Ramadan AI - PSS Al-Ghazali</title>
     
-    <!-- External Libraries -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
@@ -57,7 +56,7 @@
         .gemini-glow { 
             border-color: #fbbf24 !important; 
             background: #fffbeb !important; 
-            transform: scale(1.03); 
+            transform: scale(1.02); 
             box-shadow: 0 0 20px #fbbf24; 
         }
 
@@ -78,11 +77,82 @@
             pointer-events: none; 
         }
         
-        @keyframes scaleIn {
-            from { transform: scale(0.9); opacity: 0; }
-            to { transform: scale(1); opacity: 1; }
-        }
         .scale-in { animation: scaleIn 0.3s ease-out forwards; }
+        @keyframes scaleIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        .spin { animation: spin 1s linear infinite; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+
+        .quiz-container-layout {
+            display: flex;
+            flex-direction: column;
+            width: calc(100% - 40px); 
+            margin: 0 20px;
+            max-width: 400px; 
+            height: auto;
+            gap: 12px; 
+        }
+
+        .option-box {
+            width: 100%; 
+            padding: 30px 20px 20px 20px; 
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            border-radius: 1.25rem;
+            border-width: 3px;
+            position: relative;
+            min-height: 90px;
+            z-index: 10;
+        }
+
+        .option-label {
+            position: absolute;
+            top: -12px; 
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 11px;
+            font-weight: 800;
+            background: #fbbf24; 
+            color: #78350f;
+            padding: 4px 14px;
+            border-radius: 20px;
+            text-transform: uppercase;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            z-index: 20;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .option-text { 
+            font-size: 1rem; 
+            font-weight: 700; 
+            color: #064e3b; 
+            line-height: 1.2; 
+        }
+
+        .question-card {
+            width: 100%;
+            min-height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 12px;
+            text-align: center;
+            background: #064e3b; 
+            color: white;
+            border-color: #10b981;
+        }
+
+        @media (max-width: 640px) {
+            .quiz-container-layout { gap: 12px; }
+            .option-box { min-height: 80px; padding: 25px 15px 15px 15px; }
+            .option-text { font-size: 0.85rem; }
+            .option-label { font-size: 9px; top: -10px; }
+        }
     </style>
 </head>
 <body>
@@ -90,80 +160,99 @@
     <video id="ai-video" playsinline muted autoplay></video>
     <div id="cursor" class="hand-pointer" style="display:none"></div>
 
-    <div id="app-root" class="relative z-10 h-screen w-screen flex flex-col items-center justify-center p-4">
+    <div id="app-root" class="relative z-10 h-screen w-screen flex flex-col items-center justify-center">
         <div class="glass-panel p-8 text-center">
             <h2 class="text-lg font-bold text-emerald-800 animate-pulse uppercase">🌙 Memulakan Kuiz...</h2>
         </div>
     </div>
 
-    <div class="footer-text font-bold uppercase">ARC | SK BANDAR TUN HUSSEIN ONN 2 | 2026</div>
+    <div class="footer-text font-bold uppercase">©️ PUSAT SUMBER AL-GHAZALI | SK BANDAR TUN HUSSEIN ONN 2 | 2026</div>
 
     <script>
-        /**
-         * GOOGLE SHEETS CONFIGURATION
-         * Web App URL provided for the MOE domain.
-         */
-        const GOOGLE_SHEET_URL = "https://script.google.com/a/macros/moe-dl.edu.my/s/AKfycbxdI-oy3uKF-ym0Ken7mkTAcOFjrDY_JLKhmUdUQTGk-jw-GCiPAyMTSWI8aR7j51zbiQ/exec"; 
-
-        const originalQuestionBank = [
-            { q: "1️⃣ Puasa dari segi bahasa bermaksud? 🛑", a: "Menahan diri", b: "Makan perlahan", correct: 'left', info: "Bahasa: Menahan diri." },
-            { q: "1️⃣ Bilakah waktu tamat puasa setiap hari? 🌅", a: "Zohor", b: "Maghrib", correct: 'right', info: "Tamat puasa apabila matahari terbenam (Maghrib)." },
-            { q: "2️⃣ Niat puasa perlu dibuat pada waktu? 🌙", a: "Tengah hari", b: "Malam", correct: 'right', info: "Niat dilakukan pada waktu malam sebelum Subuh." },
-            { q: "2️⃣ Sahaja aku berpuasa esok hari... Ini lafaz? 🗣️", a: "Niat Puasa", b: "Doa Makan", correct: 'left', info: "Itu adalah sebahagian daripada lafaz niat puasa Ramadan." },
-            { q: "3️⃣ Siapakah yang wajib berpuasa? 🧠", a: "Orang Gila", b: "Orang Berakal", correct: 'right', info: "Syarat wajib: Islam, Baligh, Berakal dan Sihat." },
-            { q: "3️⃣ Adakah budak kecil yang belum baligh wajib puasa? 👶", a: "Wajib", b: "Tidak Wajib", correct: 'right', info: "Kewajipan bermula apabila seseorang itu sudah Baligh." },
-            { q: "4️⃣ Adakah muntah dengan sengaja membatalkan puasa? 🤮", a: "Batal", b: "Tidak Batal", correct: 'left', info: "Muntah dengan sengaja membatalkan puasa." },
-            { q: "4️⃣ Makan kerana TERLUPA, adakah batal puasa? 🍎", a: "Tidak Batal", b: "Ya, Batal", correct: 'left', info: "Makan secara tidak sengaja atau terlupa tidak membatalkan puasa." },
-            { q: "5️⃣ Makan sebelum Subuh dipanggil? 🥛", a: "Iftar", b: "Sahur", correct: 'right', info: "Bersahur adalah sunnah walaupun hanya minum sedikit air." },
-            { q: "5️⃣ Membaca Al-Quran beramai-ramai dipanggil? 📚", a: "Tadarus", b: "Tazkirah", correct: 'left', info: "Tadarus Al-Quran adalah amalan sunnah di bulan Ramadan." },
-            { q: "6️⃣ Malam yang lebih baik dari 1000 bulan? 💎", a: "Lailatul Qadar", b: "Malam Raya", correct: 'left', info: "Malam Lailatul Qadar adalah malam paling istimewa." },
-            { q: "6️⃣ Apakah yang berlaku kepada syaitan di bulan Ramadan? ⛓️", a: "Dilepaskan", b: "Dibelenggu", correct: 'right', info: "Pintu neraka ditutup dan syaitan dibelenggu." },
-            { q: "7️⃣ Perintah puasa diturunkan pada tahun berapa Hijrah? 📜", a: "Tahun ke-5", b: "Tahun ke-2", correct: 'right', info: "Kewajipan puasa bermula pada tahun ke-2 Hijrah." },
-            { q: "7️⃣ Di manakah tempat Al-Quran mula diturunkan? ⛰️", a: "Gua Hira'", b: "Gua Ashabul Kahfi", correct: 'left', info: "Al-Quran mula diturunkan kepada Nabi Muhammad SAW di Gua Hira'." },
-            { q: "8️⃣ Tidur berlebihan sepanjang hari hukumnya? 😴", a: "Wajib", b: "Makruh", correct: 'right', info: "Tidur berlebihan menghilangkan keberkatan dan hukumnya makruh." },
-            { q: "8️⃣ Apakah hukum mengumpat ketika berpuasa? 🙊", a: "Makruh", b: "Harus", correct: 'left', info: "Bercakap buruk atau mengumpat mengurangkan pahala puasa." },
-            { q: "9️⃣ Orang yang berjalan jauh (81km+) dipanggil? 🚗", a: "Musafir", b: "Mukim", correct: 'left', info: "Musafir diberi keringanan untuk tidak berpuasa tetapi perlu Qada'." },
-            { q: "9️⃣ Adakah orang tua yang sangat uzur wajib puasa? 👴", a: "Wajib", b: "Boleh Berbuka", correct: 'right', info: "Orang tua uzur boleh berbuka tetapi perlu membayar fidyah." },
-            { q: "10️⃣ Bilakah tarikh Nuzul Al-Quran diraikan? 📖", a: "17 Ramadan", b: "10 Ramadan", correct: 'left', info: "Nuzul Al-Quran berlaku pada 17 Ramadan." },
-            { q: "10️⃣ Al-Quran diturunkan kepada Nabi siapa? 🕊️", a: "Nabi Isa AS", b: "Nabi Muhammad SAW", correct: 'right', info: "Al-Quran diturunkan kepada Nabi terakhir, Muhammad SAW." }
-        ];
-
+        const GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbx4xrg8AkkPtviVuiIQd4yZjkRvJK3EIo5zD0GiqAWFdbEke6OBvdiEqRArLmecsnpJug/exec"; 
+        
         let questionBank = [];
         let currentIdx = 0, score = 0, progress = 0, selectedHand = 'none';
         let studentName = "", studentClass = "", isChecking = false, currentTab = 'register';
         let sheetData = [];
+        let isFetching = false;
+        let fetchError = false;
+
+        const TOTAL_QUESTIONS = 20;
+
+        const originalQuestionBank = [
+            // 1. Pengertian
+            { q: "Apakah pengertian puasa dari segi BAHASA? 🤐", a: "Makan perlahan", b: "Menahan diri", correct: 'right', info: "Bahasa bermaksud menahan diri." },
+            { q: "Puasa dari segi SYARAK bermula dari terbit fajar sehingga? 🌅", a: "Terbenam matahari", b: "Tengah malam", correct: 'left', info: "Dari Subuh (terbit fajar) hingga Maghrib (terbenam matahari)." },
+            { q: "Apakah hukum berpuasa bagi umat Islam yang mampu? ⚖️", a: "Sunat", b: "Wajib", correct: 'right', info: "Hukumnya Wajib bagi yang mampu." },
+            // 2. Rukun
+            { q: "Bilakah waktu yang ditetapkan untuk berniat puasa? 🌙", a: "Waktu malam", b: "Selepas Zohor", correct: 'left', info: "Niat dilakukan pada waktu malam sebelum fajar." },
+            { q: "Adakah 'Menahan diri' merupakan salah satu Rukun Puasa? ✅", a: "Ya, Rukun", b: "Bukan Rukun", correct: 'left', info: "Rukun puasa ada dua: Niat & Menahan diri." },
+            // 3. Syarat Wajib
+            { q: "Siapakah yang WAJIB berpuasa mengikut syarat berakal? 🧠", a: "Orang Gila", b: "Orang Waras", correct: 'right', info: "Syarat wajib: Islam, Baligh, Berakal & Sihat." },
+            { q: "Adakah kanak-kanak yang belum Baligh wajib puasa? 👶", a: "Tidak Wajib", b: "Wajib", correct: 'left', info: "Kewajipan bermula selepas mencapai umur Baligh." },
+            // 4. Membatalkan
+            { q: "Muntah dengan sengaja, adakah batal puasa? 🤮", a: "Tidak Batal", b: "Ya, Batal", correct: 'right', info: "Muntah dengan sengaja membatalkan puasa." },
+            { q: "Adakah Murtad (keluar Islam) membatalkan puasa? 🚪", a: "Ya, Batal", b: "Tidak Batal", correct: 'left', info: "Murtad membatalkan puasa serta-merta." },
+            // 5. Sunnah
+            { q: "Amalan sunnah makan sebelum Subuh dipanggil? 🥛", a: "Sahur", b: "Iftar", correct: 'left', info: "Bersahur adalah amalan sunnah yang sangat digalakkan." },
+            { q: "Sunnah berbuka puasa dengan memakan buah apa? 🌴", a: "Epal", b: "Kurma", correct: 'right', info: "Nabi Muhammad SAW menyunnahkan berbuka dengan kurma." },
+            { q: "Solat sunat yang hanya ada pada malam Ramadan ialah? 🕌", a: "Solat Hajat", b: "Solat Tarawih", correct: 'right', info: "Solat Tarawih istimewa hanya di bulan Ramadan." },
+            // 6. Keistimewaan
+            { q: "Malam yang lebih baik daripada 1,000 bulan ialah? ✨", a: "Lailatul Qadar", b: "Malam Jumaat", correct: 'left', info: "Lailatul Qadar adalah malam paling istimewa." },
+            { q: "Apakah yang terjadi kepada syaitan di bulan Ramadan? ⛓️", a: "Diberi makan", b: "Dibelenggu", correct: 'right', info: "Pintu syurga dibuka & syaitan dibelenggu." },
+            // 7. Sejarah
+            { q: "Tahun ke-berapakah Hijrah puasa Ramadan mula diwajibkan? 🗓️", a: "Tahun ke-2", b: "Tahun ke-10", correct: 'left', info: "Perintah puasa diturunkan pada tahun ke-2 Hijrah." },
+            { q: "Bilakah tarikh peristiwa Nuzul Al-Quran disambut? 📖", a: "1 Syawal", b: "17 Ramadan", correct: 'right', info: "Al-Quran mula diturunkan pada 17 Ramadan." },
+            // 8. Makruh
+            { q: "Tidur berlebihan sepanjang hari, apakah hukumnya? 😴", a: "Batal Puasa", b: "Makruh", correct: 'right', info: "Makruh kerana mengurangkan pahala & keberkatan." },
+            { q: "Bercakap perkara buruk/mengumpat ketika puasa adalah? 🗣️", a: "Makruh", b: "Sunat", correct: 'left', info: "Mengumpat & berbohong mengurangkan pahala puasa." },
+            // 9. Keringanan
+            { q: "Golongan manakah yang diberi keringanan tidak puasa? 🎒", a: "Musafir", b: "Orang Kaya", correct: 'left', info: "Musafir (perjalanan jauh > 81km) diberi keringanan." },
+            { q: "Ibu yang mengandung diberi keringanan jika bimbang akan? 🤰", a: "Rasa Lapar", b: "Keselamatan Anak", correct: 'right', info: "Boleh berbuka jika bimbang keselamatan diri/anak." }
+        ];
+
+        window.handleSheetResponse = function(data) {
+            if (Array.isArray(data)) {
+                sheetData = data;
+                fetchError = false;
+            } else {
+                fetchError = true;
+            }
+            isFetching = false;
+            renderUI();
+            const oldScript = document.getElementById('jsonp-fetcher');
+            if (oldScript) oldScript.remove();
+        };
 
         window.onload = () => { fetchSheetData(); renderUI(); };
 
-        function shuffleQuestions() {
-            questionBank = [...originalQuestionBank].sort(() => Math.random() - 0.5);
-        }
-
-        async function fetchSheetData() {
-            if (!GOOGLE_SHEET_URL.includes("http")) return;
-            try {
-                const res = await fetch(GOOGLE_SHEET_URL);
-                const json = await res.json();
-                sheetData = json;
-                if (currentTab !== 'register') renderUI();
-            } catch (e) { console.log("Gagal mengambil data Leaderboard"); }
+        function fetchSheetData() {
+            if (isFetching) return;
+            isFetching = true; fetchError = false; renderUI();
+            const script = document.createElement('script');
+            const cacheBuster = Date.now();
+            script.src = `${GOOGLE_SHEET_URL}?action=read&callback=handleSheetResponse&v=${cacheBuster}`;
+            script.id = "jsonp-fetcher";
+            const timeout = setTimeout(() => { if (isFetching) { isFetching = false; fetchError = true; renderUI(); } }, 10000);
+            script.onerror = () => { clearTimeout(timeout); isFetching = false; fetchError = true; renderUI(); };
+            document.body.appendChild(script);
         }
 
         function renderUI() {
             const root = document.getElementById('app-root');
+            if (!root) return;
             root.innerHTML = `
-                <div class="glass-panel p-6 text-center max-w-sm w-full shadow-2xl flex flex-col min-h-[520px] max-h-[90vh] scale-in">
+                <div class="glass-panel p-6 text-center max-w-sm w-full shadow-2xl flex flex-col min-h-[520px] max-h-[95vh] scale-in">
                     <div class="mb-4">
                         <h1 class="text-2xl font-bold text-emerald-900 uppercase leading-tight">🌙 Kuiz Ramadan AI</h1>
                         <p class="text-emerald-600 font-bold text-[10px] tracking-[0.2em] uppercase">PSS AL-GHAZALI</p>
                     </div>
-                    
                     <div class="flex bg-emerald-100 p-1 rounded-xl mb-4 text-[9px] font-bold">
                         <button onclick="switchTab('register')" class="flex-1 py-2 rounded-lg ${currentTab==='register'?'tab-active':''}">DAFTAR</button>
                         <button onclick="switchTab('winners')" class="flex-1 py-2 rounded-lg ${currentTab==='winners'?'tab-active':''}">LENCANA 100</button>
                         <button onclick="switchTab('all')" class="flex-1 py-2 rounded-lg ${currentTab==='all'?'tab-active':''}">LEADERBOARD</button>
                     </div>
-
                     <div id="tab-content" class="flex-1 overflow-hidden flex flex-col">
                         ${currentTab === 'register' ? renderRegister() : renderBoard()}
                     </div>
@@ -175,17 +264,16 @@
             return `
                 <div class="flex flex-col justify-center h-full space-y-4">
                     <div class="bg-emerald-50 p-4 rounded-xl border border-emerald-100 mb-2 shadow-sm text-left">
-                        <p class="text-[11px] text-emerald-800 font-bold leading-relaxed">
+                        <p class="text-[10px] text-emerald-800 font-bold leading-relaxed">
                             Arahan:<br>
-                            1. Masukkan nama & kelas anda.<br>
-                            2. Jawab 20 soalan menggunakan kamera.<br>
-                            3. Tunjuk tangan kiri atau kanan untuk memilih jawapan.
+                            1. Masukkan nama & kelas.<br>
+                            2. Tunjukkan tapak tangan kanan atau kiri untuk memilih jawapan.<br>
+                            3. Kuiz diakses menggunakan kamera untuk mengesan pergerakan tangan, namun hanya rekod nama, kelas & markah sahaja yang akan disimpan.
                         </p>
                     </div>
-                    <input id="in-name" type="text" placeholder="NAMA PENUH" oninput="this.value = this.value.toUpperCase()" class="w-full p-4 rounded-xl border-2 border-emerald-100 outline-none text-sm font-semibold uppercase focus:border-emerald-500 transition-colors">
-                    <input id="in-class" type="text" placeholder="KELAS" oninput="this.value = this.value.toUpperCase()" class="w-full p-4 rounded-xl border-2 border-emerald-100 outline-none text-sm font-semibold uppercase focus:border-emerald-500 transition-colors">
-                    <button id="btn-start" onclick="checkStart()" class="w-full bg-emerald-600 text-white font-bold py-4 rounded-2xl shadow-lg uppercase tracking-widest hover:bg-emerald-700 active:scale-95 transition-all">Mula Kuiz 🏁</button>
-                    <p id="err-msg" class="text-red-500 text-[10px] font-bold hidden bg-red-50 p-2 rounded border border-red-100 mt-2"></p>
+                    <input id="in-name" type="text" placeholder="NAMA PENUH" oninput="this.value = this.value.toUpperCase()" class="w-full p-4 rounded-xl border-2 border-emerald-100 outline-none text-sm font-semibold focus:border-emerald-500">
+                    <input id="in-class" type="text" placeholder="KELAS" oninput="this.value = this.value.toUpperCase()" class="w-full p-4 rounded-xl border-2 border-emerald-100 outline-none text-sm font-semibold focus:border-emerald-500">
+                    <button onclick="checkStart()" class="w-full bg-emerald-600 text-white font-bold py-4 rounded-2xl shadow-lg uppercase tracking-widest hover:bg-emerald-700 active:scale-95 transition-all">Mula Kuiz 🏁</button>
                 </div>
             `;
         }
@@ -193,26 +281,29 @@
         function renderBoard() {
             let list = [];
             if (currentTab === 'winners') {
-                list = sheetData.filter(d => parseInt(d.score) === 20).slice(0, 100);
+                list = sheetData.filter(d => String(d.score).includes('20/20')).slice(0, 100);
             } else {
                 list = [...sheetData].reverse();
             }
 
             return `
                 <div class="text-left flex flex-col h-full">
-                    <h3 class="text-[10px] font-black uppercase mb-2 text-emerald-800 border-b pb-1">
-                        ${currentTab === 'winners' ? '🏅 Lencana 100 (Skor 20/20)' : '📋 Rekod Peserta'}
-                    </h3>
+                    <div class="flex justify-between items-center mb-2 border-b pb-1">
+                        <h3 class="text-[10px] font-black uppercase text-emerald-800">${currentTab === 'winners' ? '🏅 Top 100 Murid (20/20)' : '📋 Pencapaian Murid'}</h3>
+                        <button onclick="fetchSheetData()" class="p-1"><svg class="w-3 h-3 text-emerald-600 ${isFetching?'spin':''}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg></button>
+                    </div>
                     <div class="flex-1 overflow-y-auto custom-scroll space-y-2 pr-1">
-                        ${list.length > 0 ? list.map((l, i) => `
+                        ${isFetching ? '<div class="text-center py-10 text-[10px] animate-pulse">Memuatkan...</div>' : (fetchError ? '<div class="text-center py-10 text-red-500 font-bold text-[10px]">Ralat data!</div>' : (list.length > 0 ? list.map((l, i) => `
                             <div class="flex items-center justify-between bg-white p-2 rounded-lg border border-emerald-50 shadow-sm">
                                 <div class="truncate flex-1">
-                                    <p class="text-[10px] font-bold text-emerald-900 truncate uppercase mb-1">${currentTab==='winners'?i+1+'. ':''}${l.name}</p>
-                                    <p class="text-[8px] text-emerald-500 font-bold uppercase">${l.class}</p>
+                                    <p class="text-[10px] font-bold text-emerald-900 truncate uppercase">
+                                        ${currentTab === 'winners' ? `<span class="text-amber-500 mr-1">#${i+1}</span>` : ''}${l.name || 'Hamba Allah'}
+                                    </p>
+                                    <p class="text-[8px] text-emerald-500 font-bold uppercase">${l.class || '-'}</p>
                                 </div>
-                                <span class="text-[10px] font-black ${l.score == 20 ? 'text-yellow-600 bg-yellow-50 border-yellow-200' : 'text-emerald-600 bg-emerald-50 border-emerald-200'} px-2 py-1 rounded-md border">${l.score}/20</span>
+                                <span class="text-[10px] font-black text-emerald-600 bg-emerald-50 px-2 py-1 rounded border">${l.score || '0/20'}</span>
                             </div>
-                        `).join('') : '<div class="text-center py-10 opacity-50 font-bold text-[10px]">Tiada rekod setakat ini.</div>'}
+                        `).join('') : '<div class="text-center py-10 opacity-50 text-[10px]">Tiada rekod.</div>'))}
                     </div>
                 </div>
             `;
@@ -220,80 +311,67 @@
 
         function switchTab(tab) { currentTab = tab; renderUI(); }
 
-        async function checkStart() {
+        function checkStart() {
             studentName = document.getElementById('in-name').value.trim().toUpperCase();
             studentClass = document.getElementById('in-class').value.trim().toUpperCase();
-            const errEl = document.getElementById('err-msg');
-            const btn = document.getElementById('btn-start');
-            
             if(!studentName || !studentClass) return;
-
-            const isDup = sheetData.some(d => d.name.toUpperCase() === studentName && d.class.toUpperCase() === studentClass);
-            if(isDup) {
-                errEl.innerText = "❌ REKOD SUDAH WUJUD! ANDA HANYA BOLEH MENJAWAB SEKALI SAHAJA.";
-                errEl.classList.remove('hidden');
-                return;
-            }
-
-            btn.disabled = true; btn.innerText = "SEDANG MEMUAT...";
-            shuffleQuestions(); 
-            setTimeout(startQuizUI, 800);
+            shuffleQuestions(); startQuizUI();
         }
+
+        function shuffleQuestions() { questionBank = [...originalQuestionBank].sort(() => Math.random() - 0.5); }
 
         function startQuizUI() {
             currentIdx = 0; score = 0;
             document.getElementById('app-root').innerHTML = `
-                <div id="quiz-ui" class="w-full h-full flex flex-col items-center justify-between py-6 px-4">
-                    <div class="glass-panel px-5 py-2"><span id="q-count" class="font-bold text-emerald-700 text-sm">SOALAN 1/20</span></div>
-                    
-                    <div class="glass-panel p-6 w-full max-w-md text-center min-h-[140px] flex items-center justify-center border-emerald-200 shadow-lg">
-                        <h2 id="q-text" class="text-lg sm:text-xl font-bold text-emerald-950 leading-tight"></h2>
-                    </div>
-
-                    <div class="flex flex-col gap-3 w-full max-w-md">
-                        <div id="box-left" class="option-box glass-panel flex-1 p-6 text-center border-4 transition-all flex flex-col items-center justify-center min-h-[90px]">
-                            <p id="opt-a" class="font-bold text-emerald-900 text-sm sm:text-base uppercase"></p>
+                <div id="quiz-ui" class="w-full h-full flex flex-col items-center justify-center py-4">
+                    <div class="quiz-container-layout">
+                        <div class="glass-panel px-4 py-2 flex justify-between items-center">
+                            <span id="q-count" class="font-bold text-emerald-800 text-xs">SOALAN 1</span>
+                            <span id="score-live" class="font-bold text-emerald-600 text-xs">SKOR: 0</span>
                         </div>
-                        <div id="box-right" class="option-box glass-panel flex-1 p-6 text-center border-4 transition-all flex flex-col items-center justify-center min-h-[90px]">
-                            <p id="opt-b" class="font-bold text-emerald-900 text-sm sm:text-base uppercase"></p>
+                        <div class="question-card glass-panel shadow-xl">
+                            <h2 id="q-text" class="text-lg font-bold leading-tight"></h2>
                         </div>
-                    </div>
-
-                    <div class="flex flex-col items-center w-full max-w-xs">
-                        <p class="text-[9px] font-bold text-white mb-2 uppercase tracking-widest bg-black/30 px-4 py-1.5 rounded-full text-center">Tunjuk tangan kiri/kanan pada kamera</p>
-                        <div class="w-full bg-white/30 h-3 rounded-full border border-white/50 overflow-hidden">
-                            <div id="prog-bar" class="bg-yellow-400 h-full w-0 transition-all duration-100"></div>
-                        </div>
-                    </div>
-                    
-                    <div id="feedback-modal" class="fixed inset-0 z-50 flex items-center justify-center p-6 hidden bg-black/75 backdrop-blur-md">
-                        <div class="glass-panel p-7 max-w-sm w-full text-center shadow-2xl scale-in">
-                            <h2 id="fb-icon" class="text-7xl mb-4"></h2>
-                            <h3 id="fb-title" class="text-3xl font-bold mb-2 uppercase"></h3>
-                            <div class="bg-emerald-50 p-5 rounded-2xl mb-6 border border-emerald-100">
-                                <p id="fb-info" class="text-emerald-900 text-base leading-relaxed font-semibold"></p>
+                        <div class="flex flex-col gap-6 mt-4">
+                            <div id="box-left" class="option-box glass-panel transition-all">
+                                <span class="option-label">🧸 TANGAN KIRI 🧸</span>
+                                <p id="opt-a" class="option-text"></p>
                             </div>
-                            <button onclick="nextQuestion()" class="w-full bg-emerald-600 text-white font-bold py-4 rounded-2xl uppercase tracking-widest shadow-lg active:scale-95 transition-transform">Seterusnya ⏩</button>
+                            <div id="box-right" class="option-box glass-panel transition-all">
+                                <span class="option-label">🐱 TANGAN KANAN 🐱</span>
+                                <p id="opt-b" class="option-text"></p>
+                            </div>
+                        </div>
+                        <div class="flex flex-col items-center mt-2">
+                            <div class="w-full bg-black/30 h-2 rounded-full overflow-hidden mb-2">
+                                <div id="prog-bar" class="bg-yellow-400 h-full w-0 transition-all duration-100"></div>
+                            </div>
+                            <p class="text-[9px] font-bold text-white uppercase tracking-widest opacity-80">Tahan tangan untuk memilih</p>
+                        </div>
+                    </div>
+                    <div id="feedback-modal" class="fixed inset-0 z-50 flex items-center justify-center p-6 hidden bg-black/80 backdrop-blur-md">
+                        <div class="glass-panel p-8 max-w-sm w-full text-center shadow-2xl scale-in border-4 border-white">
+                            <h2 id="fb-icon" class="text-7xl mb-4"></h2>
+                            <h3 id="fb-title" class="text-3xl font-black mb-3 uppercase italic text-emerald-900"></h3>
+                            <div class="bg-emerald-50 p-4 rounded-xl mb-6 border-2 border-emerald-100"><p id="fb-info" class="text-emerald-900 text-sm font-bold"></p></div>
+                            <button onclick="nextQuestion()" class="w-full bg-emerald-600 text-white font-black py-4 rounded-2xl uppercase shadow-xl hover:bg-emerald-700 active:scale-95 transition-all">Teruskan ⏩</button>
                         </div>
                     </div>
                 </div>
             `;
-            paparSoalan();
-            mulakanAI();
+            paparSoalan(); mulakanAI();
         }
 
         function paparSoalan() {
             const data = questionBank[currentIdx];
-            document.getElementById('q-count').innerText = `SOALAN ${currentIdx + 1} DARI 20`;
+            document.getElementById('q-count').innerText = `SOALAN ${currentIdx + 1} / ${questionBank.length}`;
             document.getElementById('q-text').innerText = data.q;
             document.getElementById('opt-a').innerText = data.a;
             document.getElementById('opt-b').innerText = data.b;
+            document.getElementById('score-live').innerText = `SKOR: ${score}`;
             progress = 0; isChecking = false;
             document.getElementById('prog-bar').style.width = '0%';
             document.getElementById('feedback-modal').classList.add('hidden');
-            
-            document.getElementById('box-left').className = "option-box glass-panel flex-1 p-6 text-center border-4 transition-all flex flex-col items-center justify-center min-h-[90px]";
-            document.getElementById('box-right').className = "option-box glass-panel flex-1 p-6 text-center border-4 transition-all flex flex-col items-center justify-center min-h-[90px]";
         }
 
         async function mulakanAI() {
@@ -301,12 +379,7 @@
             const cursor = document.getElementById('cursor');
             try {
                 const hands = new window.Hands({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}` });
-                hands.setOptions({ 
-                    maxNumHands: 1, 
-                    modelComplexity: 1, 
-                    minDetectionConfidence: 0.65 
-                });
-
+                hands.setOptions({ maxNumHands: 1, modelComplexity: 1, minDetectionConfidence: 0.7 });
                 hands.onResults(results => {
                     if (isChecking) return;
                     if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
@@ -314,37 +387,18 @@
                         const lm = results.multiHandLandmarks[0][8]; 
                         const x = (1 - lm.x) * window.innerWidth; 
                         const y = lm.y * window.innerHeight;
-                        cursor.style.left = x + 'px'; 
-                        cursor.style.top = y + 'px';
-                        
+                        cursor.style.left = x + 'px'; cursor.style.top = y + 'px';
                         const ratioX = 1 - lm.x;
-                        if (ratioX < 0.45) selectedHand = 'left';
-                        else if (ratioX > 0.55) selectedHand = 'right';
-                        else selectedHand = 'none';
-                        
-                        const bl = document.getElementById('box-left');
-                        const br = document.getElementById('box-right');
-                        if(bl) bl.classList.toggle('gemini-glow', selectedHand === 'left');
-                        if(br) br.classList.toggle('gemini-glow', selectedHand === 'right');
-
+                        if (ratioX < 0.4) selectedHand = 'left'; else if (ratioX > 0.6) selectedHand = 'right'; else selectedHand = 'none';
+                        document.getElementById('box-left').classList.toggle('gemini-glow', selectedHand === 'left');
+                        document.getElementById('box-right').classList.toggle('gemini-glow', selectedHand === 'right');
                         if (selectedHand !== 'none') {
-                            progress += 4; 
-                            document.getElementById('prog-bar').style.width = Math.min(progress, 100) + '%';
+                            progress += 5; document.getElementById('prog-bar').style.width = Math.min(progress, 100) + '%';
                             if (progress >= 100) semakJawapan();
-                        } else { 
-                            progress = 0; 
-                            if(document.getElementById('prog-bar')) document.getElementById('prog-bar').style.width = '0%'; 
-                        }
-                    } else { 
-                        cursor.style.display = 'none'; 
-                        selectedHand = 'none'; 
-                    }
+                        } else { progress = 0; document.getElementById('prog-bar').style.width = '0%'; }
+                    } else { cursor.style.display = 'none'; selectedHand = 'none'; }
                 });
-
-                const camera = new window.Camera(video, { 
-                    onFrame: async () => { await hands.send({image: video}); }, 
-                    width: 640, height: 480 
-                });
+                const camera = new window.Camera(video, { onFrame: async () => { await hands.send({image: video}); }, width: 640, height: 480 });
                 camera.start();
             } catch (err) { console.error("AI Error:", err); }
         }
@@ -355,50 +409,36 @@
             const q = questionBank[currentIdx];
             const isCorrect = selectedHand === q.correct;
             if (isCorrect) score++;
-            
-            document.getElementById('fb-icon').innerText = isCorrect ? '🤩' : '🥺';
+            document.getElementById('fb-icon').innerText = isCorrect ? '🌟' : '💡';
             document.getElementById('fb-title').innerText = isCorrect ? 'BETUL!' : 'SALAH!';
             document.getElementById('fb-info').innerText = q.info;
             document.getElementById('feedback-modal').classList.remove('hidden');
         }
 
-        function nextQuestion() {
-            currentIdx++;
-            if (currentIdx < 20) paparSoalan();
-            else tamatKuiz();
-        }
+        function nextQuestion() { currentIdx++; if (currentIdx < questionBank.length) paparSoalan(); else tamatKuiz(); }
 
         async function tamatKuiz() {
+            document.getElementById('app-root').innerHTML = `<div class="glass-panel p-8 text-center max-w-sm w-full"><p class="animate-pulse font-bold text-emerald-800 uppercase text-xs">Menyimpan rekod... ⏳</p></div>`;
+            const finalScoreStr = `${score}/${TOTAL_QUESTIONS}`;
+            try { 
+                await fetch(GOOGLE_SHEET_URL, { 
+                    method: 'POST', 
+                    mode: 'no-cors', 
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: "add", name: studentName, class: studentClass, score: finalScoreStr }) 
+                }); 
+            } catch (e) { console.error("Gagal menyimpan:", e); }
+            
             document.getElementById('app-root').innerHTML = `
-                <div class="glass-panel p-8 text-center max-w-sm w-full shadow-2xl">
-                    <p class="animate-pulse font-bold text-emerald-800 uppercase">Menyimpan markah anda... ⏳</p>
-                </div>
-            `;
-
-            if (GOOGLE_SHEET_URL.includes("https://script.google.com/a/macros/moe-dl.edu.my/s/AKfycbxdI-oy3uKF-ym0Ken7mkTAcOFjrDY_JLKhmUdUQTGk-jw-GCiPAyMTSWI8aR7j51zbiQ/exec")) {
-                try {
-                    await fetch(GOOGLE_SHEET_URL, {
-                        method: 'POST',
-                        mode: 'no-cors',
-                        cache: 'no-cache',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ name: studentName, class: studentClass, score: score })
-                    });
-                } catch (e) { console.log("Gagal menghantar data"); }
-            }
-
-            document.getElementById('app-root').innerHTML = `
-                <div class="glass-panel p-8 text-center max-w-sm w-full shadow-2xl scale-in">
-                    <h2 class="text-7xl mb-4">${score === 20 ? '👑' : (score >= 15 ? '⭐' : '💪')}</h2>
-                    <h3 class="text-2xl font-bold uppercase tracking-widest text-emerald-900">Kuiz Selesai!</h3>
-                    <div class="my-6">
-                        <p class="text-[11px] text-emerald-600 font-bold uppercase mb-1">Markah:</p>
-                        <p class="text-7xl font-black text-emerald-600">${score}/20</p>
+                <div class="glass-panel p-8 text-center max-w-sm w-full scale-in">
+                    <h2 class="text-7xl mb-4">${score === TOTAL_QUESTIONS ? '🏆' : '✨'}</h2>
+                    <h3 class="text-2xl font-black text-emerald-900 uppercase">Tamat!</h3>
+                    <p class="text-sm font-bold text-emerald-600 mb-6 uppercase">${studentName}</p>
+                    <div class="bg-emerald-50 p-6 rounded-2xl border-2 border-emerald-100 mb-6">
+                        <p class="text-sm font-bold text-emerald-800 mb-1 uppercase">Skor:</p>
+                        <p class="text-6xl font-black text-emerald-600">${score}/${TOTAL_QUESTIONS}</p>
                     </div>
-                    <p class="text-[12px] text-gray-500 mb-6 italic px-4 leading-relaxed font-bold">
-                        ${score === 20 ? 'Tahniah! Nama anda layak masuk ke Lencana 100.' : 'Hebat! Anda telah menyelesaikan cabaran 20 soalan Ramadan.'}
-                    </p>
-                    <button onclick="location.reload()" class="w-full bg-emerald-600 text-white font-bold py-4 rounded-2xl shadow-lg uppercase tracking-widest active:scale-95 transition-all">Halaman Utama 🏠</button>
+                    <button onclick="location.reload()" class="w-full bg-emerald-600 text-white font-black py-4 rounded-2xl uppercase shadow-lg active:scale-95 transition-all">Utama 🏠</button>
                 </div>
             `;
         }
