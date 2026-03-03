@@ -105,6 +105,7 @@
             position: relative;
             min-height: 90px;
             z-index: 10;
+            transition: all 0.2s ease;
         }
 
         .option-label {
@@ -205,27 +206,28 @@
 
         const TOTAL_QUESTIONS = 20;
 
+        // Data asal soalan
         const originalQuestionBank = [
-            { q: "Apakah pengertian puasa dari segi BAHASA? 🤐", a: "Makan perlahan", b: "Menahan diri", correct: 'right', info: "Bahasa bermaksud menahan diri." },
-            { q: "Puasa dari segi SYARAK bermula dari terbit fajar sehingga? 🌅", a: "Terbenam matahari", b: "Tengah malam", correct: 'left', info: "Dari Subuh (terbit fajar) hingga Maghrib (terbenam matahari)." },
-            { q: "Apakah hukum berpuasa bagi umat Islam yang mampu? ⚖️", a: "Sunat", b: "Wajib", correct: 'right', info: "Hukumnya Wajib bagi yang mampu." },
-            { q: "Bilakah waktu yang ditetapkan untuk berniat puasa? 🌙", a: "Waktu malam", b: "Selepas Zohor", correct: 'left', info: "Niat dilakukan pada waktu malam sebelum fajar." },
-            { q: "Adakah 'Menahan diri' merupakan salah satu Rukun Puasa? ✅", a: "Ya, Rukun", b: "Bukan Rukun", correct: 'left', info: "Rukun puasa ada dua: Niat & Menahan diri." },
-            { q: "Siapakah yang WAJIB berpuasa mengikut syarat berakal? 🧠", a: "Orang Gila", b: "Orang Waras", correct: 'right', info: "Syarat wajib: Islam, Baligh, Berakal & Sihat." },
-            { q: "Adakah kanak-kanak yang belum Baligh wajib puasa? 👶", a: "Tidak Wajib", b: "Wajib", correct: 'left', info: "Kewajipan bermula selepas mencapai umur Baligh." },
-            { q: "Muntah dengan sengaja, adakah batal puasa? 🤮", a: "Tidak Batal", b: "Ya, Batal", correct: 'right', info: "Muntah dengan sengaja membatalkan puasa." },
-            { q: "Adakah Murtad (keluar Islam) membatalkan puasa? 🚪", a: "Ya, Batal", b: "Tidak Batal", correct: 'left', info: "Murtad membatalkan puasa serta-merta." },
-            { q: "Amalan sunnah makan sebelum Subuh dipanggil? 🥛", a: "Sahur", b: "Iftar", correct: 'left', info: "Bersahur adalah amalan sunnah yang sangat digalakkan." },
-            { q: "Sunnah berbuka puasa dengan memakan buah apa? 🌴", a: "Epal", b: "Kurma", correct: 'right', info: "Nabi Muhammad SAW menyunnahkan berbuka dengan kurma." },
-            { q: "Solat sunat yang hanya ada pada malam Ramadan ialah? 🕌", a: "Solat Hajat", b: "Solat Tarawih", correct: 'right', info: "Solat Tarawih istimewa hanya di bulan Ramadan." },
-            { q: "Malam yang lebih baik daripada 1,000 bulan ialah? ✨", a: "Lailatul Qadar", b: "Malam Jumaat", correct: 'left', info: "Lailatul Qadar adalah malam paling istimewa." },
-            { q: "Apakah yang terjadi kepada syaitan di bulan Ramadan? ⛓️", a: "Diberi makan", b: "Dibelenggu", correct: 'right', info: "Pintu syurga dibuka & syaitan dibelenggu." },
-            { q: "Tahun ke-berapakah Hijrah puasa Ramadan mula diwajibkan? 🗓️", a: "Tahun ke-2", b: "Tahun ke-10", correct: 'left', info: "Perintah puasa diturunkan pada tahun ke-2 Hijrah." },
-            { q: "Bilakah tarikh peristiwa Nuzul Al-Quran disambut? 📖", a: "1 Syawal", b: "17 Ramadan", correct: 'right', info: "Al-Quran mula diturunkan pada 17 Ramadan." },
-            { q: "Tidur berlebihan sepanjang hari, apakah hukumnya? 😴", a: "Batal Puasa", b: "Makruh", correct: 'right', info: "Makruh kerana mengurangkan pahala & keberkatan." },
-            { q: "Bercakap perkara buruk/mengumpat ketika puasa adalah? 🗣️", a: "Makruh", b: "Sunat", correct: 'left', info: "Mengumpat & berbohong mengurangkan pahala puasa." },
-            { q: "Golongan manakah yang diberi keringanan tidak puasa? 🎒", a: "Musafir", b: "Orang Kaya", correct: 'left', info: "Musafir (perjalanan jauh > 81km) diberi keringanan." },
-            { q: "Ibu yang mengandung diberi keringanan jika bimbang akan? 🤰", a: "Rasa Lapar", b: "Keselamatan Anak", correct: 'right', info: "Boleh berbuka jika bimbang keselamatan diri/anak." }
+            { q: "Apakah pengertian puasa dari segi BAHASA? 🤐", a: "Makan perlahan", b: "Menahan diri", correct_val: "Menahan diri", info: "Bahasa bermaksud menahan diri." },
+            { q: "Puasa dari segi SYARAK bermula dari terbit fajar sehingga? 🌅", a: "Terbenam matahari", b: "Tengah malam", correct_val: "Terbenam matahari", info: "Dari Subuh (terbit fajar) hingga Maghrib (terbenam matahari)." },
+            { q: "Apakah hukum berpuasa bagi umat Islam yang mampu? ⚖️", a: "Sunat", b: "Wajib", correct_val: "Wajib", info: "Hukumnya Wajib bagi yang mampu." },
+            { q: "Bilakah waktu yang ditetapkan untuk berniat puasa? 🌙", a: "Waktu malam", b: "Selepas Zohor", correct_val: "Waktu malam", info: "Niat dilakukan pada waktu malam sebelum fajar." },
+            { q: "Adakah 'Menahan diri' merupakan salah satu Rukun Puasa? ✅", a: "Ya, Rukun", b: "Bukan Rukun", correct_val: "Ya, Rukun", info: "Rukun puasa ada dua: Niat & Menahan diri." },
+            { q: "Siapakah yang WAJIB berpuasa mengikut syarat berakal? 🧠", a: "Orang Gila", b: "Orang Waras", correct_val: "Orang Waras", info: "Syarat wajib: Islam, Baligh, Berakal & Sihat." },
+            { q: "Adakah kanak-kanak yang belum Baligh wajib puasa? 👶", a: "Tidak Wajib", b: "Wajib", correct_val: "Tidak Wajib", info: "Kewajipan bermula selepas mencapai umur Baligh." },
+            { q: "Muntah dengan sengaja, adakah batal puasa? 🤮", a: "Tidak Batal", b: "Ya, Batal", correct_val: "Ya, Batal", info: "Muntah dengan sengaja membatalkan puasa." },
+            { q: "Adakah Murtad (keluar Islam) membatalkan puasa? 🚪", a: "Ya, Batal", b: "Tidak Batal", correct_val: "Ya, Batal", info: "Murtad membatalkan puasa serta-merta." },
+            { q: "Amalan sunnah makan sebelum Subuh dipanggil? 🥛", a: "Sahur", b: "Iftar", correct_val: "Sahur", info: "Bersahur adalah amalan sunnah yang sangat digalakkan." },
+            { q: "Sunnah berbuka puasa dengan memakan buah apa? 🌴", a: "Epal", b: "Kurma", correct_val: "Kurma", info: "Nabi Muhammad SAW menyunnahkan berbuka dengan kurma." },
+            { q: "Solat sunat yang hanya ada pada malam Ramadan ialah? 🕌", a: "Solat Hajat", b: "Solat Tarawih", correct_val: "Solat Tarawih", info: "Solat Tarawih istimewa hanya di bulan Ramadan." },
+            { q: "Malam yang lebih baik daripada 1,000 bulan ialah? ✨", a: "Lailatul Qadar", b: "Malam Jumaat", correct_val: "Lailatul Qadar", info: "Lailatul Qadar adalah malam paling istimewa." },
+            { q: "Apakah yang terjadi kepada syaitan di bulan Ramadan? ⛓️", a: "Diberi makan", b: "Dibelenggu", correct_val: "Dibelenggu", info: "Pintu syurga dibuka & syaitan dibelenggu." },
+            { q: "Tahun ke-berapakah Hijrah puasa Ramadan mula diwajibkan? 🗓️", a: "Tahun ke-2", b: "Tahun ke-10", correct_val: "Tahun ke-2", info: "Perintah puasa diturunkan pada tahun ke-2 Hijrah." },
+            { q: "Bilakah tarikh peristiwa Nuzul Al-Quran disambut? 📖", a: "1 Syawal", b: "17 Ramadan", correct_val: "17 Ramadan", info: "Al-Quran mula diturunkan pada 17 Ramadan." },
+            { q: "Tidur berlebihan sepanjang hari, apakah hukumnya? 😴", a: "Batal Puasa", b: "Makruh", correct_val: "Makruh", info: "Makruh kerana mengurangkan pahala & keberkatan." },
+            { q: "Bercakap perkara buruk/mengumpat ketika puasa adalah? 🗣️", a: "Makruh", b: "Sunat", correct_val: "Makruh", info: "Mengumpat & berbohong mengurangkan pahala puasa." },
+            { q: "Golongan manakah yang diberi keringanan tidak puasa? 🎒", a: "Musafir", b: "Orang Kaya", correct_val: "Musafir", info: "Musafir (perjalanan jauh > 81km) diberi keringanan." },
+            { q: "Ibu yang mengandung diberi keringanan jika bimbang akan? 🤰", a: "Rasa Lapar", b: "Keselamatan Anak", correct_val: "Keselamatan Anak", info: "Boleh berbuka jika bimbang keselamatan diri/anak." }
         ];
 
         window.handleSheetResponse = function(data) {
@@ -364,14 +366,12 @@
 
         function switchTab(tab) { currentTab = tab; renderUI(); }
 
-        // SEMAK DUPLIKASI NAMA & KELAS
         function checkStart() {
             studentName = document.getElementById('in-name').value.trim().toUpperCase();
             studentClass = document.getElementById('in-class').value.trim().toUpperCase();
             
             if(!studentName || !studentClass) return;
 
-            // Semak dalam sheetData
             const isDuplicate = sheetData.some(d => 
                 String(d.name).toUpperCase() === studentName && 
                 String(d.class).toUpperCase() === studentClass
@@ -390,7 +390,23 @@
             document.getElementById('duplicate-modal').classList.add('hidden');
         }
 
-        function shuffleQuestions() { questionBank = [...originalQuestionBank].sort(() => Math.random() - 0.5); }
+        // FUNGSI RESHUFFLE: Soalan & Pilihan Jawapan
+        function shuffleQuestions() { 
+            // 1. Acak turutan soalan
+            questionBank = [...originalQuestionBank].sort(() => Math.random() - 0.5); 
+            
+            // 2. Acak pilihan jawapan bagi setiap soalan
+            questionBank = questionBank.map(item => {
+                const options = [item.a, item.b].sort(() => Math.random() - 0.5);
+                return {
+                    ...item,
+                    optLeft: options[0],
+                    optRight: options[1],
+                    // Kenalpasti kedudukan baru jawapan yang betul
+                    correct: (options[0] === item.correct_val) ? 'left' : 'right'
+                };
+            });
+        }
 
         function startQuizUI() {
             currentIdx = 0; score = 0;
@@ -405,11 +421,11 @@
                             <h2 id="q-text" class="text-lg font-bold leading-tight"></h2>
                         </div>
                         <div class="flex flex-col gap-6 mt-4">
-                            <div id="box-left" class="option-box glass-panel transition-all">
+                            <div id="box-left" class="option-box glass-panel">
                                 <span class="option-label">🧸 TANGAN KIRI 🧸</span>
                                 <p id="opt-a" class="option-text"></p>
                             </div>
-                            <div id="box-right" class="option-box glass-panel transition-all">
+                            <div id="box-right" class="option-box glass-panel">
                                 <span class="option-label">🐱 TANGAN KANAN 🐱</span>
                                 <p id="opt-b" class="option-text"></p>
                             </div>
@@ -422,7 +438,7 @@
                         </div>
                     </div>
                     <div id="feedback-modal" class="fixed inset-0 z-50 flex items-center justify-center p-6 hidden bg-black/80 backdrop-blur-md">
-                        <div class="glass-panel p-8 max-w-sm w-full text-center shadow-2xl scale-in border-4 border-white">
+                        <div class="glass-panel p-8 max-sm w-full text-center shadow-2xl scale-in border-4 border-white">
                             <h2 id="fb-icon" class="text-7xl mb-4"></h2>
                             <h3 id="fb-title" class="text-3xl font-black mb-3 uppercase italic text-emerald-900"></h3>
                             <div class="bg-emerald-50 p-4 rounded-xl mb-6 border-2 border-emerald-100"><p id="fb-info" class="text-emerald-900 text-sm font-bold"></p></div>
@@ -435,14 +451,25 @@
         }
 
         function paparSoalan() {
+            selectedHand = 'none';
+            progress = 0;
+            isChecking = false;
+
+            const boxLeft = document.getElementById('box-left');
+            const boxRight = document.getElementById('box-right');
+            const progBar = document.getElementById('prog-bar');
+            
+            if(boxLeft) boxLeft.classList.remove('gemini-glow');
+            if(boxRight) boxRight.classList.remove('gemini-glow');
+            if(progBar) progBar.style.width = '0%';
+
             const data = questionBank[currentIdx];
             document.getElementById('q-count').innerText = `SOALAN ${currentIdx + 1} / ${questionBank.length}`;
             document.getElementById('q-text').innerText = data.q;
-            document.getElementById('opt-a').innerText = data.a;
-            document.getElementById('opt-b').innerText = data.b;
+            document.getElementById('opt-a').innerText = data.optLeft; // Guna kedudukan yang telah diacak
+            document.getElementById('opt-b').innerText = data.optRight; // Guna kedudukan yang telah diacak
             document.getElementById('score-live').innerText = `SKOR: ${score}`;
-            progress = 0; isChecking = false;
-            document.getElementById('prog-bar').style.width = '0%';
+            
             document.getElementById('feedback-modal').classList.add('hidden');
         }
 
@@ -454,21 +481,42 @@
                 hands.setOptions({ maxNumHands: 1, modelComplexity: 1, minDetectionConfidence: 0.7 });
                 hands.onResults(results => {
                     if (isChecking) return;
+                    
+                    const boxLeft = document.getElementById('box-left');
+                    const boxRight = document.getElementById('box-right');
+                    const progBar = document.getElementById('prog-bar');
+
                     if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
                         cursor.style.display = 'block';
                         const lm = results.multiHandLandmarks[0][8]; 
                         const x = (1 - lm.x) * window.innerWidth; 
                         const y = lm.y * window.innerHeight;
                         cursor.style.left = x + 'px'; cursor.style.top = y + 'px';
+                        
                         const ratioX = 1 - lm.x;
-                        if (ratioX < 0.4) selectedHand = 'left'; else if (ratioX > 0.6) selectedHand = 'right'; else selectedHand = 'none';
-                        document.getElementById('box-left').classList.toggle('gemini-glow', selectedHand === 'left');
-                        document.getElementById('box-right').classList.toggle('gemini-glow', selectedHand === 'right');
+                        if (ratioX < 0.4) selectedHand = 'left'; 
+                        else if (ratioX > 0.6) selectedHand = 'right'; 
+                        else selectedHand = 'none';
+
+                        if(boxLeft) boxLeft.classList.toggle('gemini-glow', selectedHand === 'left');
+                        if(boxRight) boxRight.classList.toggle('gemini-glow', selectedHand === 'right');
+                        
                         if (selectedHand !== 'none') {
-                            progress += 5; document.getElementById('prog-bar').style.width = Math.min(progress, 100) + '%';
+                            progress += 5; 
+                            if(progBar) progBar.style.width = Math.min(progress, 100) + '%';
                             if (progress >= 100) semakJawapan();
-                        } else { progress = 0; document.getElementById('prog-bar').style.width = '0%'; }
-                    } else { cursor.style.display = 'none'; selectedHand = 'none'; }
+                        } else { 
+                            progress = 0; 
+                            if(progBar) progBar.style.width = '0%'; 
+                        }
+                    } else { 
+                        cursor.style.display = 'none'; 
+                        selectedHand = 'none'; 
+                        if(boxLeft) boxLeft.classList.remove('gemini-glow');
+                        if(boxRight) boxRight.classList.remove('gemini-glow');
+                        progress = 0;
+                        if(progBar) progBar.style.width = '0%';
+                    }
                 });
                 const camera = new window.Camera(video, { onFrame: async () => { await hands.send({image: video}); }, width: 640, height: 480 });
                 camera.start();
@@ -481,13 +529,18 @@
             const q = questionBank[currentIdx];
             const isCorrect = selectedHand === q.correct;
             if (isCorrect) score++;
+            
             document.getElementById('fb-icon').innerText = isCorrect ? '🌟' : '💡';
             document.getElementById('fb-title').innerText = isCorrect ? 'BETUL!' : 'SALAH!';
             document.getElementById('fb-info').innerText = q.info;
             document.getElementById('feedback-modal').classList.remove('hidden');
         }
 
-        function nextQuestion() { currentIdx++; if (currentIdx < questionBank.length) paparSoalan(); else tamatKuiz(); }
+        function nextQuestion() { 
+            currentIdx++; 
+            if (currentIdx < questionBank.length) paparSoalan(); 
+            else tamatKuiz(); 
+        }
 
         async function tamatKuiz() {
             document.getElementById('app-root').innerHTML = `<div class="glass-panel p-8 text-center max-w-sm w-full"><p class="animate-pulse font-bold text-emerald-800 uppercase text-xs">Menyimpan rekod... ⏳</p></div>`;
