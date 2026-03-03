@@ -5,14 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Kuiz Ramadan AI - PSS Al-Ghazali</title>
     
+    <!-- External Libraries -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Firebase SDK (Compat version) -->
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
-
-    <!-- MediaPipe AI Libraries -->
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
     
@@ -20,62 +14,75 @@
         @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap');
         
         body { 
-            font-family: 'Fredoka', sans-serif;
+            font-family: 'Fredoka', sans-serif; 
             overflow: hidden; 
-            background: #064e3b;
-            height: 100dvh; width: 100vw; margin: 0;
+            background: #064e3b; 
+            height: 100dvh; 
+            width: 100vw; 
+            margin: 0; 
+            touch-action: manipulation; 
         }
-        
+
         #ai-video { 
             transform: scaleX(-1); 
-            object-fit: cover;
-            width: 100%; height: 100%;
-            position: absolute; z-index: 0; opacity: 0.3;
+            object-fit: cover; 
+            width: 100%; 
+            height: 100%; 
+            position: absolute; 
+            z-index: 0; 
+            opacity: 0.3; 
         }
 
-        .glass-panel {
-            background: rgba(255, 255, 255, 0.96);
-            backdrop-filter: blur(10px);
-            border: 3px solid #10b981;
-            border-radius: 1.5rem;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+        .glass-panel { 
+            background: rgba(255, 255, 255, 0.96); 
+            backdrop-filter: blur(10px); 
+            border: 3px solid #10b981; 
+            border-radius: 1.5rem; 
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2); 
         }
 
-        .hand-pointer {
-            position: absolute;
-            width: 30px; height: 30px;
-            background: #fbbf24;
-            border: 3px solid white;
-            border-radius: 50%;
-            pointer-events: none;
-            z-index: 100;
-            box-shadow: 0 0 15px rgba(251, 191, 36, 0.9);
+        .hand-pointer { 
+            position: absolute; 
+            width: 32px; 
+            height: 32px; 
+            background: #fbbf24; 
+            border: 3px solid white; 
+            border-radius: 50%; 
+            pointer-events: none; 
+            z-index: 100; 
+            box-shadow: 0 0 15px rgba(251, 191, 36, 0.9); 
+            transition: transform 0.1s ease-out;
         }
 
         .gemini-glow { 
-            border-color: #fbbf24 !important;
-            background: #fffbeb !important;
-            transform: scale(1.02);
-            box-shadow: 0 0 15px #fbbf24;
+            border-color: #fbbf24 !important; 
+            background: #fffbeb !important; 
+            transform: scale(1.03); 
+            box-shadow: 0 0 20px #fbbf24; 
         }
 
-        .correct-ans {
-            border-color: #22c55e !important;
-            background: #f0fdf4 !important;
-        }
+        .tab-active { background-color: #10b981; color: white; }
 
-        .wrong-ans {
-            border-color: #ef4444 !important;
-            background: #fef2f2 !important;
-        }
-
-        .custom-scroll::-webkit-scrollbar { width: 5px; }
+        .custom-scroll::-webkit-scrollbar { width: 4px; }
         .custom-scroll::-webkit-scrollbar-thumb { background: #10b981; border-radius: 10px; }
 
-        .tab-active {
-            background-color: #10b981;
-            color: white;
+        .footer-text { 
+            font-size: 9px; 
+            letter-spacing: 1px; 
+            color: #d1fae5; 
+            position: fixed; 
+            bottom: 8px; 
+            z-index: 20; 
+            width: 100%; 
+            text-align: center; 
+            pointer-events: none; 
         }
+        
+        @keyframes scaleIn {
+            from { transform: scale(0.9); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+        .scale-in { animation: scaleIn 0.3s ease-out forwards; }
     </style>
 </head>
 <body>
@@ -85,240 +92,188 @@
 
     <div id="app-root" class="relative z-10 h-screen w-screen flex flex-col items-center justify-center p-4">
         <div class="glass-panel p-8 text-center">
-            <h2 class="text-lg font-bold text-emerald-800 animate-pulse uppercase">🌙 Menyiapkan Kuiz...</h2>
+            <h2 class="text-lg font-bold text-emerald-800 animate-pulse uppercase">🌙 Memulakan Kuiz...</h2>
         </div>
     </div>
 
+    <div class="footer-text font-bold uppercase">ARC | SK BANDAR TUN HUSSEIN ONN 2 | 2026</div>
+
     <script>
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'kuiz-ramadan-alghazali';
-        const firebaseConfig = JSON.parse(__firebase_config);
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
-        const auth = firebase.auth();
+        /**
+         * GOOGLE SHEETS CONFIGURATION
+         * Web App URL provided for the MOE domain.
+         */
+        const GOOGLE_SHEET_URL = "https://script.google.com/a/macros/moe-dl.edu.my/s/AKfycbxdI-oy3uKF-ym0Ken7mkTAcOFjrDY_JLKhmUdUQTGk-jw-GCiPAyMTSWI8aR7j51zbiQ/exec"; 
 
-        const scoresCollectionPath = db.collection('artifacts').doc(appId).collection('public').doc('data').collection('scores');
-
-        const questionBank = [
-            { q: "🌙 Maksud puasa dari segi bahasa ialah?", a: "Menahan diri 🛑", b: "Makan banyak 🍎", correct: 'left', info: "Puasa bermaksud menahan diri daripada makan, minum dan perkara yang membatalkan puasa." },
-            { q: "⏰ Bila kita mula berpuasa setiap hari?", a: "Waktu Zohor ☀️", b: "Waktu Subuh 🌅", correct: 'right', info: "Puasa bermula dari terbit fajar (Subuh) sehingga terbenam matahari (Maghrib)." },
-            { q: "⚖️ Apakah hukum puasa Ramadan bagi umat Islam?", a: "Wajib ✅", b: "Sunat ✨", correct: 'left', info: "Puasa Ramadan adalah salah satu daripada Rukun Islam yang wajib dilaksanakan." },
-            { q: "🌅 Berbuka puasa apabila masuk waktu apa?", a: "Asar 🌤️", b: "Maghrib 🌙", correct: 'right', info: "Waktu berbuka puasa ditandai dengan azan Maghrib." },
-            { q: "🕌 Solat sunat yang hanya ada pada malam Ramadan?", a: "Tarawih 🛐", b: "Dhuha ☀️", correct: 'left', info: "Solat Tarawih adalah solat sunat khusus yang dilakukan pada malam bulan Ramadan sahaja." },
-            { q: "🍗 Makan sebelum waktu Subuh dipanggil apa?", a: "Iftar 🍲", b: "Sahur 🥛", correct: 'right', info: "Sahur dilakukan sebelum Subuh untuk memberi tenaga semasa berpuasa." },
-            { q: "🍦 Adakah makan secara sengaja membatalkan puasa?", a: "Ya, Batal! 😱", b: "Tidak Batal 😋", correct: 'left', info: "Makan atau minum secara sengaja membatalkan puasa, namun jika terlupa ia tidak batal." },
-            { q: "📖 Membaca Al-Quran beramai-ramai dipanggil?", a: "Tadarus 📚", b: "Tazkirah 🎤", correct: 'left', info: "Tadarus adalah aktiviti membaca dan menyemak Al-Quran secara bergilir-gilir." },
-            { q: "✨ Malam yang lebih baik dari 1000 bulan ialah?", a: "Malam Jumaat 🕋", b: "Lailatul Qadar 💎", correct: 'right', info: "Lailatul Qadar berlaku pada 10 malam terakhir Ramadan." },
-            { q: "🌴 Sunnah Nabi, kita berbuka dengan buah apa?", a: "Buah Kurma 🟤", b: "Buah Epal 🍎", correct: 'left', info: "Berbuka dengan kurma adalah sunnah Nabi Muhammad SAW kerana ia membekalkan tenaga segera." },
-            { q: "💰 Zakat yang wajib dibayar pada bulan Ramadan?", a: "Zakat Fitrah 🪙", b: "Zakat Harta 💎", correct: 'left', info: "Zakat Fitrah wajib dibayar oleh setiap muslim yang mampu sebelum solat sunat Aidilfitri." },
-            { q: "🎊 Selepas sebulan puasa, kita sambut apa?", a: "Aidiladha 🐑", b: "Aidilfitri 🍬", correct: 'right', info: "Aidilfitri disambut pada 1 Syawal sebagai kemenangan setelah sebulan berpuasa." },
-            { q: "🛑 Perkara yang membatalkan puasa ialah?", a: "Muntah Sengaja 🤮", b: "Tidur Siang 😴", correct: 'left', info: "Muntah dengan sengaja membatalkan puasa. Tidur tidak membatalkan puasa." },
-            { q: "🚪 Nama pintu syurga untuk orang berpuasa?", a: "Ar-Rayyan 🌈", b: "Firdaus 🏰", correct: 'left', info: "Ar-Rayyan adalah pintu khusus di syurga yang hanya boleh dimasuki oleh orang yang berpuasa." },
-            { q: "🧸 Puasa mengajar kita sifat apa?", a: "Sabar & Jujur ❤️", b: "Cepat Marah 😡", correct: 'left', info: "Puasa melatih jiwa untuk bersabar menahan nafsu dan jujur dalam amalan." },
-            { q: "⛓️ Apa terjadi kepada syaitan pada bulan Ramadan?", a: "Kena Ikat ⛓️", b: "Bebas Berlari 🏃", correct: 'left', info: "Hadis menyatakan pada bulan Ramadan pintu syurga dibuka dan syaitan dirantai/diikat." },
-            { q: "🤒 Orang yang uzur/sakit boleh tidak puasa?", a: "Boleh (Kena Ganti) 🏥", b: "Tetap Wajib ❌", correct: 'left', info: "Islam memberi kemudahan kepada orang sakit untuk berbuka dan menggantinya pada hari lain." },
-            { q: "🦷 Adakah memberus gigi membatalkan puasa?", a: "Tidak Batal 🪥", b: "Batal Puasa ❌", correct: 'left', info: "Memberus gigi tidak membatalkan puasa asalkan air atau ubat gigi tidak ditelan masuk ke dalam halkum." },
-            { q: "🙊 Mengumpat kawan masa puasa akan menyebabkan?", a: "Pahala Berkurang 📉", b: "Puasa Batal 😱", correct: 'left', info: "Mengumpat tidak membatalkan puasa secara sah tetapi menghilangkan pahala puasa tersebut." },
-            { q: "🥤 Niat puasa dilakukan pada waktu bila?", a: "Malam hari 🌙", b: "Tengahari ☀️", correct: 'left', info: "Niat puasa Ramadan wajib dilakukan pada waktu malam sebelum masuk waktu Subuh." }
+        const originalQuestionBank = [
+            { q: "1️⃣ Puasa dari segi bahasa bermaksud? 🛑", a: "Menahan diri", b: "Makan perlahan", correct: 'left', info: "Bahasa: Menahan diri." },
+            { q: "1️⃣ Bilakah waktu tamat puasa setiap hari? 🌅", a: "Zohor", b: "Maghrib", correct: 'right', info: "Tamat puasa apabila matahari terbenam (Maghrib)." },
+            { q: "2️⃣ Niat puasa perlu dibuat pada waktu? 🌙", a: "Tengah hari", b: "Malam", correct: 'right', info: "Niat dilakukan pada waktu malam sebelum Subuh." },
+            { q: "2️⃣ Sahaja aku berpuasa esok hari... Ini lafaz? 🗣️", a: "Niat Puasa", b: "Doa Makan", correct: 'left', info: "Itu adalah sebahagian daripada lafaz niat puasa Ramadan." },
+            { q: "3️⃣ Siapakah yang wajib berpuasa? 🧠", a: "Orang Gila", b: "Orang Berakal", correct: 'right', info: "Syarat wajib: Islam, Baligh, Berakal dan Sihat." },
+            { q: "3️⃣ Adakah budak kecil yang belum baligh wajib puasa? 👶", a: "Wajib", b: "Tidak Wajib", correct: 'right', info: "Kewajipan bermula apabila seseorang itu sudah Baligh." },
+            { q: "4️⃣ Adakah muntah dengan sengaja membatalkan puasa? 🤮", a: "Batal", b: "Tidak Batal", correct: 'left', info: "Muntah dengan sengaja membatalkan puasa." },
+            { q: "4️⃣ Makan kerana TERLUPA, adakah batal puasa? 🍎", a: "Tidak Batal", b: "Ya, Batal", correct: 'left', info: "Makan secara tidak sengaja atau terlupa tidak membatalkan puasa." },
+            { q: "5️⃣ Makan sebelum Subuh dipanggil? 🥛", a: "Iftar", b: "Sahur", correct: 'right', info: "Bersahur adalah sunnah walaupun hanya minum sedikit air." },
+            { q: "5️⃣ Membaca Al-Quran beramai-ramai dipanggil? 📚", a: "Tadarus", b: "Tazkirah", correct: 'left', info: "Tadarus Al-Quran adalah amalan sunnah di bulan Ramadan." },
+            { q: "6️⃣ Malam yang lebih baik dari 1000 bulan? 💎", a: "Lailatul Qadar", b: "Malam Raya", correct: 'left', info: "Malam Lailatul Qadar adalah malam paling istimewa." },
+            { q: "6️⃣ Apakah yang berlaku kepada syaitan di bulan Ramadan? ⛓️", a: "Dilepaskan", b: "Dibelenggu", correct: 'right', info: "Pintu neraka ditutup dan syaitan dibelenggu." },
+            { q: "7️⃣ Perintah puasa diturunkan pada tahun berapa Hijrah? 📜", a: "Tahun ke-5", b: "Tahun ke-2", correct: 'right', info: "Kewajipan puasa bermula pada tahun ke-2 Hijrah." },
+            { q: "7️⃣ Di manakah tempat Al-Quran mula diturunkan? ⛰️", a: "Gua Hira'", b: "Gua Ashabul Kahfi", correct: 'left', info: "Al-Quran mula diturunkan kepada Nabi Muhammad SAW di Gua Hira'." },
+            { q: "8️⃣ Tidur berlebihan sepanjang hari hukumnya? 😴", a: "Wajib", b: "Makruh", correct: 'right', info: "Tidur berlebihan menghilangkan keberkatan dan hukumnya makruh." },
+            { q: "8️⃣ Apakah hukum mengumpat ketika berpuasa? 🙊", a: "Makruh", b: "Harus", correct: 'left', info: "Bercakap buruk atau mengumpat mengurangkan pahala puasa." },
+            { q: "9️⃣ Orang yang berjalan jauh (81km+) dipanggil? 🚗", a: "Musafir", b: "Mukim", correct: 'left', info: "Musafir diberi keringanan untuk tidak berpuasa tetapi perlu Qada'." },
+            { q: "9️⃣ Adakah orang tua yang sangat uzur wajib puasa? 👴", a: "Wajib", b: "Boleh Berbuka", correct: 'right', info: "Orang tua uzur boleh berbuka tetapi perlu membayar fidyah." },
+            { q: "10️⃣ Bilakah tarikh Nuzul Al-Quran diraikan? 📖", a: "17 Ramadan", b: "10 Ramadan", correct: 'left', info: "Nuzul Al-Quran berlaku pada 17 Ramadan." },
+            { q: "10️⃣ Al-Quran diturunkan kepada Nabi siapa? 🕊️", a: "Nabi Isa AS", b: "Nabi Muhammad SAW", correct: 'right', info: "Al-Quran diturunkan kepada Nabi terakhir, Muhammad SAW." }
         ];
 
-        let currentIdx = 0;
-        let score = 0;
-        let progress = 0;
-        let selectedHand = 'none';
-        let studentName = "";
-        let studentClass = "";
-        let historyData = [];
-        let isChecking = false;
-        let currentTab = 'register'; // 'register' atau 'history'
+        let questionBank = [];
+        let currentIdx = 0, score = 0, progress = 0, selectedHand = 'none';
+        let studentName = "", studentClass = "", isChecking = false, currentTab = 'register';
+        let sheetData = [];
 
-        window.onload = async () => {
+        window.onload = () => { fetchSheetData(); renderUI(); };
+
+        function shuffleQuestions() {
+            questionBank = [...originalQuestionBank].sort(() => Math.random() - 0.5);
+        }
+
+        async function fetchSheetData() {
+            if (!GOOGLE_SHEET_URL.includes("http")) return;
             try {
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await auth.signInWithCustomToken(__initial_auth_token);
-                } else {
-                    await auth.signInAnonymously();
-                }
-                auth.onAuthStateChanged((user) => { if (user) fetchHistory(); });
-                renderUI();
-            } catch (err) { console.error("Auth Error:", err); }
-        };
-
-        function fetchHistory() {
-            scoresCollectionPath.onSnapshot(snap => {
-                const allData = snap.docs.map(doc => doc.data());
-                historyData = allData.sort((a, b) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0));
-                if (currentTab === 'history') updateHistoryDisplay();
-            });
+                const res = await fetch(GOOGLE_SHEET_URL);
+                const json = await res.json();
+                sheetData = json;
+                if (currentTab !== 'register') renderUI();
+            } catch (e) { console.log("Gagal mengambil data Leaderboard"); }
         }
 
         function renderUI() {
             const root = document.getElementById('app-root');
             root.innerHTML = `
-                <div class="glass-panel p-6 text-center max-w-sm w-full shadow-2xl flex flex-col min-h-[500px] max-h-[90vh]">
-                    <!-- Header -->
+                <div class="glass-panel p-6 text-center max-w-sm w-full shadow-2xl flex flex-col min-h-[520px] max-h-[90vh] scale-in">
                     <div class="mb-4">
-                        <h1 class="text-2xl font-bold text-emerald-900 uppercase tracking-tight">🌙 Kuiz Ramadan AI</h1>
-                        <p class="text-emerald-600 font-bold text-[10px] tracking-widest uppercase">PSS AL-GHAZALI</p>
+                        <h1 class="text-2xl font-bold text-emerald-900 uppercase leading-tight">🌙 Kuiz Ramadan AI</h1>
+                        <p class="text-emerald-600 font-bold text-[10px] tracking-[0.2em] uppercase">PSS AL-GHAZALI</p>
+                    </div>
+                    
+                    <div class="flex bg-emerald-100 p-1 rounded-xl mb-4 text-[9px] font-bold">
+                        <button onclick="switchTab('register')" class="flex-1 py-2 rounded-lg ${currentTab==='register'?'tab-active':''}">DAFTAR</button>
+                        <button onclick="switchTab('winners')" class="flex-1 py-2 rounded-lg ${currentTab==='winners'?'tab-active':''}">LENCANA 100</button>
+                        <button onclick="switchTab('all')" class="flex-1 py-2 rounded-lg ${currentTab==='all'?'tab-active':''}">LEADERBOARD</button>
                     </div>
 
-                    <!-- Tabs Button -->
-                    <div class="flex bg-emerald-100 p-1 rounded-xl mb-6">
-                        <button onclick="switchTab('register')" id="tab-reg" class="flex-1 py-2 text-xs font-bold rounded-lg transition-all ${currentTab === 'register' ? 'tab-active shadow-sm' : 'text-emerald-700'}">DAFTAR</button>
-                        <button onclick="switchTab('history')" id="tab-hist" class="flex-1 py-2 text-xs font-bold rounded-lg transition-all ${currentTab === 'history' ? 'tab-active shadow-sm' : 'text-emerald-700'}">REKOD & LENCANA</button>
-                    </div>
-
-                    <!-- Content Area -->
-                    <div id="tab-content" class="flex-1 flex flex-col overflow-hidden">
-                        ${currentTab === 'register' ? renderRegisterTab() : renderHistoryTab()}
+                    <div id="tab-content" class="flex-1 overflow-hidden flex flex-col">
+                        ${currentTab === 'register' ? renderRegister() : renderBoard()}
                     </div>
                 </div>
             `;
         }
 
-        function renderRegisterTab() {
+        function renderRegister() {
             return `
-                <div class="flex flex-col justify-center h-full space-y-4 animate-fadeIn">
-                    <div class="text-center mb-2">
-                        <p class="text-emerald-800 text-sm font-medium">Sila masukkan maklumat anda untuk memulakan kuiz.</p>
+                <div class="flex flex-col justify-center h-full space-y-4">
+                    <div class="bg-emerald-50 p-4 rounded-xl border border-emerald-100 mb-2 shadow-sm text-left">
+                        <p class="text-[11px] text-emerald-800 font-bold leading-relaxed">
+                            Arahan:<br>
+                            1. Masukkan nama & kelas anda.<br>
+                            2. Jawab 20 soalan menggunakan kamera.<br>
+                            3. Tunjuk tangan kiri atau kanan untuk memilih jawapan.
+                        </p>
                     </div>
-                    <!-- Auto-uppercase inputs -->
-                    <input id="in-name" type="text" placeholder="Nama Penuh Murid" oninput="this.value = this.value.toUpperCase()" class="w-full p-4 rounded-xl border-2 border-emerald-100 focus:border-emerald-500 outline-none text-sm shadow-sm uppercase">
-                    <input id="in-class" type="text" placeholder="Kelas (cth: 6 ARIF)" oninput="this.value = this.value.toUpperCase()" class="w-full p-4 rounded-xl border-2 border-emerald-100 focus:border-emerald-500 outline-none text-sm shadow-sm uppercase">
-                    <button id="btn-start" onclick="checkDuplicateAndStart()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-4 rounded-2xl shadow-lg active:scale-95 transition-all uppercase tracking-widest">Mula Kuiz 🚀</button>
-                    <div id="error-msg" class="text-red-500 text-[10px] font-bold hidden bg-red-50 p-2 rounded border border-red-100 uppercase"></div>
+                    <input id="in-name" type="text" placeholder="NAMA PENUH" oninput="this.value = this.value.toUpperCase()" class="w-full p-4 rounded-xl border-2 border-emerald-100 outline-none text-sm font-semibold uppercase focus:border-emerald-500 transition-colors">
+                    <input id="in-class" type="text" placeholder="KELAS" oninput="this.value = this.value.toUpperCase()" class="w-full p-4 rounded-xl border-2 border-emerald-100 outline-none text-sm font-semibold uppercase focus:border-emerald-500 transition-colors">
+                    <button id="btn-start" onclick="checkStart()" class="w-full bg-emerald-600 text-white font-bold py-4 rounded-2xl shadow-lg uppercase tracking-widest hover:bg-emerald-700 active:scale-95 transition-all">Mula Kuiz 🏁</button>
+                    <p id="err-msg" class="text-red-500 text-[10px] font-bold hidden bg-red-50 p-2 rounded border border-red-100 mt-2"></p>
                 </div>
             `;
         }
 
-        function renderHistoryTab() {
-            const winners = historyData.filter(d => d.score === 20).slice(0, 100);
+        function renderBoard() {
+            let list = [];
+            if (currentTab === 'winners') {
+                list = sheetData.filter(d => parseInt(d.score) === 20).slice(0, 100);
+            } else {
+                list = [...sheetData].reverse();
+            }
+
             return `
-                <div class="flex flex-col h-full overflow-hidden animate-fadeIn text-left">
-                    <!-- Section Lencana -->
-                    <div class="mb-4">
-                        <div class="flex items-center gap-2 mb-2 text-emerald-800 border-b border-emerald-100 pb-1">
-                            <span class="text-lg">🏆</span>
-                            <h3 class="text-xs font-black uppercase tracking-tight">Pemenang Lencana (Top 100)</h3>
-                        </div>
-                        <div class="max-h-32 overflow-y-auto custom-scroll space-y-1 mb-2 pr-1" id="winners-list">
-                            ${winners.length > 0 ? winners.map((w, i) => `
-                                <div class="flex items-center justify-between bg-yellow-50 p-2 rounded-lg border border-yellow-200 shadow-sm">
-                                    <div class="truncate pr-2">
-                                        <p class="text-[10px] font-bold text-emerald-900 truncate leading-none mb-1 uppercase">${i+1}. ${w.name}</p>
-                                        <p class="text-[8px] text-emerald-600 uppercase font-bold">${w.class}</p>
-                                    </div>
-                                    <span class="text-[10px] font-black text-yellow-600 bg-white px-2 py-0.5 rounded-full border border-yellow-100 shadow-xs">20/20</span>
+                <div class="text-left flex flex-col h-full">
+                    <h3 class="text-[10px] font-black uppercase mb-2 text-emerald-800 border-b pb-1">
+                        ${currentTab === 'winners' ? '🏅 Lencana 100 (Skor 20/20)' : '📋 Rekod Peserta'}
+                    </h3>
+                    <div class="flex-1 overflow-y-auto custom-scroll space-y-2 pr-1">
+                        ${list.length > 0 ? list.map((l, i) => `
+                            <div class="flex items-center justify-between bg-white p-2 rounded-lg border border-emerald-50 shadow-sm">
+                                <div class="truncate flex-1">
+                                    <p class="text-[10px] font-bold text-emerald-900 truncate uppercase mb-1">${currentTab==='winners'?i+1+'. ':''}${l.name}</p>
+                                    <p class="text-[8px] text-emerald-500 font-bold uppercase">${l.class}</p>
                                 </div>
-                            `).join('') : '<p class="text-[9px] text-emerald-500 italic p-2">Belum ada pemenang 100%.</p>'}
-                        </div>
-                    </div>
-
-                    <!-- Section Sejarah -->
-                    <div class="flex-1 flex flex-col overflow-hidden">
-                        <div class="flex items-center justify-between mb-2 text-emerald-800 border-b border-emerald-100 pb-1">
-                            <h3 class="text-xs font-black uppercase tracking-tight">Rekod Keseluruhan</h3>
-                            <span class="text-[9px] font-bold bg-emerald-200 text-emerald-700 px-2 py-0.5 rounded-full">${historyData.length}</span>
-                        </div>
-                        <div class="flex-1 overflow-y-auto custom-scroll space-y-1.5 pr-1" id="history-full-list">
-                            ${historyData.map(l => `
-                                <div class="flex items-center justify-between bg-white p-2 rounded-lg border border-emerald-50 shadow-sm">
-                                    <div class="truncate flex-1">
-                                        <p class="text-[10px] font-bold text-emerald-900 truncate leading-none mb-1 uppercase">${l.name}</p>
-                                        <p class="text-[8px] text-emerald-500 font-bold uppercase">${l.class}</p>
-                                    </div>
-                                    <span class="text-[10px] font-bold ${l.score >= 15 ? 'text-emerald-600' : 'text-orange-400'}">${l.score}/20</span>
-                                </div>
-                            `).join('')}
-                        </div>
+                                <span class="text-[10px] font-black ${l.score == 20 ? 'text-yellow-600 bg-yellow-50 border-yellow-200' : 'text-emerald-600 bg-emerald-50 border-emerald-200'} px-2 py-1 rounded-md border">${l.score}/20</span>
+                            </div>
+                        `).join('') : '<div class="text-center py-10 opacity-50 font-bold text-[10px]">Tiada rekod setakat ini.</div>'}
                     </div>
                 </div>
             `;
         }
 
-        function switchTab(tab) {
-            currentTab = tab;
-            renderUI();
-        }
+        function switchTab(tab) { currentTab = tab; renderUI(); }
 
-        function updateHistoryDisplay() {
-            const content = document.getElementById('tab-content');
-            if (content) content.innerHTML = renderHistoryTab();
-        }
-
-        async function checkDuplicateAndStart() {
-            // Force uppercase one last time during collection
+        async function checkStart() {
             studentName = document.getElementById('in-name').value.trim().toUpperCase();
             studentClass = document.getElementById('in-class').value.trim().toUpperCase();
-            
+            const errEl = document.getElementById('err-msg');
             const btn = document.getElementById('btn-start');
-            const errEl = document.getElementById('error-msg');
+            
+            if(!studentName || !studentClass) return;
 
-            if(!studentName || !studentClass) {
-                errEl.innerText = "Sila isi nama dan kelas!";
+            const isDup = sheetData.some(d => d.name.toUpperCase() === studentName && d.class.toUpperCase() === studentClass);
+            if(isDup) {
+                errEl.innerText = "❌ REKOD SUDAH WUJUD! ANDA HANYA BOLEH MENJAWAB SEKALI SAHAJA.";
                 errEl.classList.remove('hidden');
                 return;
             }
 
-            btn.disabled = true;
-            btn.innerHTML = `<span class="inline-block animate-spin mr-2">⏳</span> MENYEMAK...`;
-            errEl.classList.add('hidden');
-
-            try {
-                const snapshot = await scoresCollectionPath.get();
-                const exists = snapshot.docs.some(doc => {
-                    const d = doc.data();
-                    return d.name.toUpperCase() === studentName && 
-                           d.class.toUpperCase() === studentClass;
-                });
-
-                if (exists) {
-                    errEl.innerText = "MAAF, REKOD NAMA & KELAS INI SUDAH WUJUD.";
-                    errEl.classList.remove('hidden');
-                    btn.disabled = false;
-                    btn.innerText = "Mula Kuiz 🚀";
-                } else {
-                    startQuiz();
-                }
-            } catch (err) {
-                errEl.innerText = "Ralat pangkalan data.";
-                errEl.classList.remove('hidden');
-                btn.disabled = false;
-                btn.innerText = "Mula Kuiz 🚀";
-            }
+            btn.disabled = true; btn.innerText = "SEDANG MEMUAT...";
+            shuffleQuestions(); 
+            setTimeout(startQuizUI, 800);
         }
 
-        function startQuiz() {
+        function startQuizUI() {
+            currentIdx = 0; score = 0;
             document.getElementById('app-root').innerHTML = `
                 <div id="quiz-ui" class="w-full h-full flex flex-col items-center justify-between py-6 px-4">
-                    <div class="glass-panel px-5 py-2 shadow-md">
-                        <span id="q-count" class="font-bold text-emerald-700 text-sm">Soalan 1/20</span>
+                    <div class="glass-panel px-5 py-2"><span id="q-count" class="font-bold text-emerald-700 text-sm">SOALAN 1/20</span></div>
+                    
+                    <div class="glass-panel p-6 w-full max-w-md text-center min-h-[140px] flex items-center justify-center border-emerald-200 shadow-lg">
+                        <h2 id="q-text" class="text-lg sm:text-xl font-bold text-emerald-950 leading-tight"></h2>
                     </div>
-                    <div class="glass-panel p-5 w-full max-w-md text-center shadow-xl">
-                        <h2 id="q-text" class="text-lg font-bold text-emerald-950 leading-tight"></h2>
-                    </div>
-                    <div class="options-container flex flex-col sm:flex-row gap-3 w-full max-w-md">
-                        <div id="box-left" class="option-box glass-panel flex-1 p-4 text-center border-4 transition-all">
-                            <div class="bg-emerald-500 text-white w-8 h-8 rounded-full mx-auto mb-2 flex items-center justify-center font-bold text-sm">A</div>
-                            <p id="opt-a" class="font-bold text-emerald-900 text-base"></p>
+
+                    <div class="flex flex-col gap-3 w-full max-w-md">
+                        <div id="box-left" class="option-box glass-panel flex-1 p-6 text-center border-4 transition-all flex flex-col items-center justify-center min-h-[90px]">
+                            <p id="opt-a" class="font-bold text-emerald-900 text-sm sm:text-base uppercase"></p>
                         </div>
-                        <div id="box-right" class="option-box glass-panel flex-1 p-4 text-center border-4 transition-all">
-                            <div class="bg-emerald-500 text-white w-8 h-8 rounded-full mx-auto mb-2 flex items-center justify-center font-bold text-sm">B</div>
-                            <p id="opt-b" class="font-bold text-emerald-900 text-base"></p>
+                        <div id="box-right" class="option-box glass-panel flex-1 p-6 text-center border-4 transition-all flex flex-col items-center justify-center min-h-[90px]">
+                            <p id="opt-b" class="font-bold text-emerald-900 text-sm sm:text-base uppercase"></p>
                         </div>
                     </div>
-                    <div class="flex flex-col items-center gap-2">
-                        <p id="hint-text" class="text-[10px] text-white/80 font-bold uppercase tracking-widest">Kekalkan tangan pada pilihan</p>
-                        <div class="w-48 bg-white/30 h-4 rounded-full border border-white/50 overflow-hidden">
-                            <div id="prog-bar" class="bg-yellow-400 h-full w-0 transition-all"></div>
+
+                    <div class="flex flex-col items-center w-full max-w-xs">
+                        <p class="text-[9px] font-bold text-white mb-2 uppercase tracking-widest bg-black/30 px-4 py-1.5 rounded-full text-center">Tunjuk tangan kiri/kanan pada kamera</p>
+                        <div class="w-full bg-white/30 h-3 rounded-full border border-white/50 overflow-hidden">
+                            <div id="prog-bar" class="bg-yellow-400 h-full w-0 transition-all duration-100"></div>
                         </div>
                     </div>
-                    <!-- Feedback Modal -->
-                    <div id="feedback-modal" class="fixed inset-0 z-50 flex items-center justify-center p-6 hidden bg-black/40 backdrop-blur-sm">
-                        <div class="glass-panel p-6 max-w-sm w-full text-center modal-enter">
-                            <h2 id="fb-icon" class="text-5xl mb-3"></h2>
-                            <h3 id="fb-title" class="text-2xl font-bold mb-2"></h3>
-                            <p id="fb-info" class="text-emerald-900 text-sm mb-6 leading-relaxed"></p>
-                            <button onclick="nextQuestion()" class="w-full bg-emerald-500 text-white font-bold py-3 rounded-xl uppercase shadow-md">Teruskan ✨</button>
+                    
+                    <div id="feedback-modal" class="fixed inset-0 z-50 flex items-center justify-center p-6 hidden bg-black/75 backdrop-blur-md">
+                        <div class="glass-panel p-7 max-w-sm w-full text-center shadow-2xl scale-in">
+                            <h2 id="fb-icon" class="text-7xl mb-4"></h2>
+                            <h3 id="fb-title" class="text-3xl font-bold mb-2 uppercase"></h3>
+                            <div class="bg-emerald-50 p-5 rounded-2xl mb-6 border border-emerald-100">
+                                <p id="fb-info" class="text-emerald-900 text-base leading-relaxed font-semibold"></p>
+                            </div>
+                            <button onclick="nextQuestion()" class="w-full bg-emerald-600 text-white font-bold py-4 rounded-2xl uppercase tracking-widest shadow-lg active:scale-95 transition-transform">Seterusnya ⏩</button>
                         </div>
                     </div>
                 </div>
@@ -329,17 +284,16 @@
 
         function paparSoalan() {
             const data = questionBank[currentIdx];
-            document.getElementById('q-count').innerText = `Soalan ${currentIdx + 1}/20`;
+            document.getElementById('q-count').innerText = `SOALAN ${currentIdx + 1} DARI 20`;
             document.getElementById('q-text').innerText = data.q;
             document.getElementById('opt-a').innerText = data.a;
             document.getElementById('opt-b').innerText = data.b;
-            progress = 0;
-            isChecking = false;
+            progress = 0; isChecking = false;
             document.getElementById('prog-bar').style.width = '0%';
             document.getElementById('feedback-modal').classList.add('hidden');
-            document.getElementById('box-left').className = "option-box glass-panel flex-1 p-4 text-center border-4 transition-all";
-            document.getElementById('box-right').className = "option-box glass-panel flex-1 p-4 text-center border-4 transition-all";
-            updateHighlight();
+            
+            document.getElementById('box-left').className = "option-box glass-panel flex-1 p-6 text-center border-4 transition-all flex flex-col items-center justify-center min-h-[90px]";
+            document.getElementById('box-right').className = "option-box glass-panel flex-1 p-6 text-center border-4 transition-all flex flex-col items-center justify-center min-h-[90px]";
         }
 
         async function mulakanAI() {
@@ -347,90 +301,104 @@
             const cursor = document.getElementById('cursor');
             try {
                 const hands = new window.Hands({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}` });
-                hands.setOptions({ maxNumHands: 1, modelComplexity: 1, minDetectionConfidence: 0.5 });
+                hands.setOptions({ 
+                    maxNumHands: 1, 
+                    modelComplexity: 1, 
+                    minDetectionConfidence: 0.65 
+                });
+
                 hands.onResults(results => {
                     if (isChecking) return;
                     if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
                         cursor.style.display = 'block';
                         const lm = results.multiHandLandmarks[0][8]; 
-                        const x = (1 - lm.x) * window.innerWidth;
+                        const x = (1 - lm.x) * window.innerWidth; 
                         const y = lm.y * window.innerHeight;
-                        cursor.style.left = x + 'px'; cursor.style.top = y + 'px';
+                        cursor.style.left = x + 'px'; 
+                        cursor.style.top = y + 'px';
+                        
                         const ratioX = 1 - lm.x;
                         if (ratioX < 0.45) selectedHand = 'left';
                         else if (ratioX > 0.55) selectedHand = 'right';
                         else selectedHand = 'none';
-                        updateHighlight();
+                        
+                        const bl = document.getElementById('box-left');
+                        const br = document.getElementById('box-right');
+                        if(bl) bl.classList.toggle('gemini-glow', selectedHand === 'left');
+                        if(br) br.classList.toggle('gemini-glow', selectedHand === 'right');
+
                         if (selectedHand !== 'none') {
-                            progress += 4;
-                            document.getElementById('prog-bar').style.width = progress + '%';
+                            progress += 4; 
+                            document.getElementById('prog-bar').style.width = Math.min(progress, 100) + '%';
                             if (progress >= 100) semakJawapan();
-                        } else {
-                            progress = 0;
-                            document.getElementById('prog-bar').style.width = '0%';
+                        } else { 
+                            progress = 0; 
+                            if(document.getElementById('prog-bar')) document.getElementById('prog-bar').style.width = '0%'; 
                         }
-                    } else {
-                        cursor.style.display = 'none'; selectedHand = 'none'; updateHighlight();
+                    } else { 
+                        cursor.style.display = 'none'; 
+                        selectedHand = 'none'; 
                     }
                 });
-                const camera = new window.Camera(video, { onFrame: async () => { await hands.send({image: video}); }, width: 640, height: 480 });
-                camera.start();
-            } catch (err) { console.error(err); }
-        }
 
-        function updateHighlight() {
-            const bl = document.getElementById('box-left');
-            const br = document.getElementById('box-right');
-            if(!bl || !br) return;
-            bl.classList.toggle('gemini-glow', selectedHand === 'left');
-            br.classList.toggle('gemini-glow', selectedHand === 'right');
+                const camera = new window.Camera(video, { 
+                    onFrame: async () => { await hands.send({image: video}); }, 
+                    width: 640, height: 480 
+                });
+                camera.start();
+            } catch (err) { console.error("AI Error:", err); }
         }
 
         function semakJawapan() {
             if (isChecking) return;
             isChecking = true;
-            const currentQuestion = questionBank[currentIdx];
-            const isCorrect = selectedHand === currentQuestion.correct;
-            
-            document.getElementById(selectedHand === 'left' ? 'box-left' : 'box-right').classList.add(isCorrect ? 'correct-ans' : 'wrong-ans');
-            if(!isCorrect) document.getElementById(currentQuestion.correct === 'left' ? 'box-left' : 'box-right').classList.add('correct-ans');
-
-            document.getElementById('fb-icon').innerText = isCorrect ? '✅' : '❌';
-            document.getElementById('fb-title').innerText = isCorrect ? 'Tahniah! Betul' : 'Aduh! Salah';
-            document.getElementById('fb-title').className = isCorrect ? 'text-2xl font-bold mb-2 text-emerald-600' : 'text-2xl font-bold mb-2 text-red-600';
-            document.getElementById('fb-info').innerText = currentQuestion.info;
-            
+            const q = questionBank[currentIdx];
+            const isCorrect = selectedHand === q.correct;
             if (isCorrect) score++;
-
-            setTimeout(() => {
-                document.getElementById('feedback-modal').classList.remove('hidden');
-            }, 500);
+            
+            document.getElementById('fb-icon').innerText = isCorrect ? '🤩' : '🥺';
+            document.getElementById('fb-title').innerText = isCorrect ? 'BETUL!' : 'SALAH!';
+            document.getElementById('fb-info').innerText = q.info;
+            document.getElementById('feedback-modal').classList.remove('hidden');
         }
 
         function nextQuestion() {
             currentIdx++;
-            if (currentIdx < 20) {
-                paparSoalan();
-            } else {
-                tamatKuiz();
-            }
+            if (currentIdx < 20) paparSoalan();
+            else tamatKuiz();
         }
 
         async function tamatKuiz() {
-            if (auth.currentUser) {
-                await scoresCollectionPath.add({
-                    name: studentName, class: studentClass, score: score,
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                    userId: auth.currentUser.uid
-                });
-            }
-            const isWinner = score === 20;
             document.getElementById('app-root').innerHTML = `
                 <div class="glass-panel p-8 text-center max-w-sm w-full shadow-2xl">
-                    <h2 class="text-5xl mb-3">${isWinner ? '🏆' : '⭐'}</h2>
-                    <h3 class="text-xl font-bold text-emerald-900 uppercase tracking-tight">${isWinner ? 'Tahniah! Skor Penuh' : 'Bintang Ramadan'}</h3>
-                    <p class="text-4xl font-bold text-emerald-600 my-4">${score}/20</p>
-                    <button onclick="location.reload()" class="w-full bg-emerald-500 text-white font-bold py-4 rounded-xl uppercase shadow-md tracking-widest">Balik ke Mula 🏠</button>
+                    <p class="animate-pulse font-bold text-emerald-800 uppercase">Menyimpan markah anda... ⏳</p>
+                </div>
+            `;
+
+            if (GOOGLE_SHEET_URL.includes("https://script.google.com/a/macros/moe-dl.edu.my/s/AKfycbxdI-oy3uKF-ym0Ken7mkTAcOFjrDY_JLKhmUdUQTGk-jw-GCiPAyMTSWI8aR7j51zbiQ/exec")) {
+                try {
+                    await fetch(GOOGLE_SHEET_URL, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        cache: 'no-cache',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ name: studentName, class: studentClass, score: score })
+                    });
+                } catch (e) { console.log("Gagal menghantar data"); }
+            }
+
+            document.getElementById('app-root').innerHTML = `
+                <div class="glass-panel p-8 text-center max-w-sm w-full shadow-2xl scale-in">
+                    <h2 class="text-7xl mb-4">${score === 20 ? '👑' : (score >= 15 ? '⭐' : '💪')}</h2>
+                    <h3 class="text-2xl font-bold uppercase tracking-widest text-emerald-900">Kuiz Selesai!</h3>
+                    <div class="my-6">
+                        <p class="text-[11px] text-emerald-600 font-bold uppercase mb-1">Markah:</p>
+                        <p class="text-7xl font-black text-emerald-600">${score}/20</p>
+                    </div>
+                    <p class="text-[12px] text-gray-500 mb-6 italic px-4 leading-relaxed font-bold">
+                        ${score === 20 ? 'Tahniah! Nama anda layak masuk ke Lencana 100.' : 'Hebat! Anda telah menyelesaikan cabaran 20 soalan Ramadan.'}
+                    </p>
+                    <button onclick="location.reload()" class="w-full bg-emerald-600 text-white font-bold py-4 rounded-2xl shadow-lg uppercase tracking-widest active:scale-95 transition-all">Halaman Utama 🏠</button>
                 </div>
             `;
         }
